@@ -1,0 +1,227 @@
+import type React from "react"
+import type { FeatureStyle, StyleLayer } from "./types"
+
+export const DEFAULT_POLYGON_STYLE: FeatureStyle = {
+  layers: [
+    {
+      id: "layer1",
+      strokeColor: "#0000ff",
+      strokeWidth: 2,
+      strokeOpacity: 1,
+      fillColor: "#0000ff",
+      fillOpacity: 0.4,
+      fillPattern: {
+        type: "none",
+        color: "#000000",
+        size: 3,
+        spacing: 8,
+        angle: 0,
+      },
+      offset: 0,
+    },
+  ],
+  arrows: {
+    enabled: false,
+    atStart: false,
+    atEnd: false,
+    alongPath: false,
+    color: "#ff0000",
+    size: 12,
+    style: "triangle",
+    spacing: 150,
+  },
+}
+
+export const DEFAULT_LINE_STYLE: FeatureStyle = {
+  layers: [
+    {
+      id: `layer${Date.now()}`,
+      strokeColor: "#0000ff",
+      strokeWidth: 5,
+      strokeOpacity: 1,
+      fillColor: "#0000ff",
+      fillOpacity: 0.4,
+      fillPattern: { type: "none", color: "#000000", size: 1, spacing: 5, angle: 0 },
+      offset: 0,
+    },
+  ],
+  arrows: {
+    enabled: false,
+    atStart: false,
+    atEnd: true,
+    alongPath: false,
+    color: "#ff0000",
+    size: 12,
+    style: "triangle",
+    spacing: 150,
+  },
+}
+
+export function createStyleFunction(featureStyles: React.MutableRefObject<Map<string, FeatureStyle>>) {
+  return function styleFunction(feature: any, resolution: number) {
+    const ol = (window as any).ol
+    if (!ol) return []
+
+    const uid = ol.util.getUid(feature)
+    const geometry = feature.getGeometry()
+    if (!geometry) return []
+    const geomType = geometry.getType()
+
+    const defaultStyle = geomType === "Polygon" || geomType === "Circle" ? DEFAULT_POLYGON_STYLE : DEFAULT_LINE_STYLE
+    const featureStyle = featureStyles.current.get(uid) || JSON.parse(JSON.stringify(defaultStyle))
+    const styles: any[] = []
+
+    const isSelected = feature.get("selected")
+    const isHovered = feature.get("hovered")
+
+    const maxWidth = Math.max(1, ...featureStyle.layers.map((l: StyleLayer) => l.strokeWidth))
+
+    if (isSelected) {
+      styles.push(
+        new ol.style.Style({
+          stroke: new ol.style.Stroke({
+            color: "rgba(255, 165, 0, 0.8)",
+            width: maxWidth + 8,
+          }),
+          fill:
+            geomType === "Polygon" || geomType === "Circle"
+              ? new ol.style.Fill({ color: "rgba(255, 165, 0, 0.2)" })
+              : undefined,
+          zIndex: 0,
+        }),
+      )
+    }
+
+    if (isHovered && !isSelected) {
+      styles.push(
+        new ol.style.Style({
+          stroke: new ol.style.Stroke({ color: "rgba(255, 193, 7, 0.6)", width: maxWidth + 6 }),
+          zIndex: 0,
+        }),
+      )
+    }
+
+    featureStyle.layers.forEach((layer: StyleLayer, index: number) => {
+      let layerGeom = geometry
+      if (layer.offset !== 0 && geomType === "LineString" && ol.coordinate.offsetCoords) {
+        const offsetInMapUnits = layer.offset * resolution
+        layerGeom = new ol.geom.LineString(ol.coordinate.offsetCoords(geometry.getCoordinates(), offsetInMapUnits))
+      }
+
+      const hexToRgba = (hex: string, opacity: number) => {
+        const r = Number.parseInt(hex.slice(1, 3), 16)
+        const g = Number.parseInt(hex.slice(3, 5), 16)
+        const b = Number.parseInt(hex.slice(5, 7), 16)
+        return `rgba(${r}, ${g}, ${b}, ${opacity})`
+      }
+
+      const stroke = new ol.style.Stroke({
+        color: hexToRgba(layer.strokeColor, layer.strokeOpacity),
+        width: layer.strokeWidth,
+      })
+
+      let fill
+      if (geomType === "Polygon" || geomType === "Circle") {
+        const patternConfig = layer.fillPattern
+        if (patternConfig && patternConfig.type !== "none" && ol.style.FillPattern) {
+          fill = new ol.style.FillPattern({
+            pattern: patternConfig.type,
+            color: patternConfig.color,
+            size: patternConfig.size,
+            spacing: patternConfig.spacing,
+            angle: patternConfig.angle,
+            fill: new ol.style.Fill({ color: hexToRgba(layer.fillColor, layer.fillOpacity) }),
+          })
+        } else {
+          fill = new ol.style.Fill({ color: hexToRgba(layer.fillColor, layer.fillOpacity) })
+        }
+      }
+
+      styles.push(new ol.style.Style({ geometry: layerGeom, stroke, fill, zIndex: index + 10 }))
+    })
+
+    if (featureStyle.arrows.enabled && geomType === "LineString") {
+      const arrows = featureStyle.arrows
+      const coordinates = geometry.getCoordinates()
+
+      const createArrowStyle = (rotation: number) => {
+        let svg
+        if (arrows.style === "chevron") {
+          svg = `<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M7.5 2.5l5 7.5-5 7.5" stroke="${arrows.color}" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+        } else {
+          svg = `<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M2.5 2.5l15 7.5-15 7.5v-15z" fill="${arrows.color}"/></svg>`
+        }
+
+        return new ol.style.Style({
+          image: new ol.style.Icon({
+            src: "data:image/svg+xml;utf8," + encodeURIComponent(svg),
+            anchor: [0.5, 0.5],
+            rotateWithView: true,
+            rotation: -rotation,
+            scale: arrows.size / 20,
+          }),
+          zIndex: 100,
+        })
+      }
+
+      if (arrows.atEnd && coordinates.length >= 2) {
+        const p1 = coordinates[coordinates.length - 2]
+        const p2 = coordinates[coordinates.length - 1]
+        const rotation = Math.atan2(p2[1] - p1[1], p2[0] - p1[0])
+        const arrowStyle = createArrowStyle(rotation)
+        styles.push(
+          new ol.style.Style({
+            geometry: new ol.geom.Point(p2),
+            image: arrowStyle.getImage(),
+            zIndex: arrowStyle.getZIndex(),
+          }),
+        )
+      }
+
+      if (arrows.atStart && coordinates.length >= 2) {
+        const p1 = coordinates[0] // The start point
+        const p2 = coordinates[1] // The second point
+        const rotation = Math.atan2(p2[1] - p1[1], p2[0] - p1[0]) // Correct: rotation from start to second point
+        const arrowStyle = createArrowStyle(rotation)
+        styles.push(
+          new ol.style.Style({
+            geometry: new ol.geom.Point(p1), // Place arrow at the start point
+            image: arrowStyle.getImage(),
+            zIndex: arrowStyle.getZIndex(),
+          }),
+        )
+      }
+
+      if (arrows.alongPath) {
+        let accumulatedLength = 0
+        const arrowSpacing = arrows.spacing * resolution
+        let nextArrowDist = arrowSpacing / 2
+
+        geometry.forEachSegment((start: number[], end: number[]) => {
+          const segmentDx = end[0] - start[0]
+          const segmentDy = end[1] - start[1]
+          const segmentLength = Math.sqrt(segmentDx * segmentDx + segmentDy * segmentDy)
+
+          while (nextArrowDist <= accumulatedLength + segmentLength) {
+            const distanceIntoSegment = nextArrowDist - accumulatedLength
+            const ratio = distanceIntoSegment / segmentLength
+            const point = [start[0] + segmentDx * ratio, start[1] + segmentDy * ratio]
+            const rotation = Math.atan2(segmentDy, segmentDx)
+            const arrowStyle = createArrowStyle(rotation)
+            styles.push(
+              new ol.style.Style({
+                geometry: new ol.geom.Point(point),
+                image: arrowStyle.getImage(),
+                zIndex: arrowStyle.getZIndex(),
+              }),
+            )
+            nextArrowDist += arrowSpacing
+          }
+          accumulatedLength += segmentLength
+        })
+      }
+    }
+
+    return styles
+  }
+}
