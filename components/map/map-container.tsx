@@ -5,6 +5,7 @@ import { useOpenLayersMap } from "@/hooks/use-openlayers-map"
 import { useMapInteractions } from "@/hooks/use-map-interactions"
 import { Toolbar } from "./toolbar"
 import { StylingPanel } from "./styling-panel"
+import { Helper } from "./helper"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Toaster } from "@/components/ui/toaster"
@@ -164,6 +165,9 @@ export default function MapContainer() {
             </div>
           </div>
         )}
+
+        <Helper currentMode={currentMode} />
+
         <Toolbar currentMode={currentMode} setMode={setCurrentMode} clearAll={clearAll} disabled={!scriptsLoaded} />
 
         <div className="absolute top-4 right-4 flex flex-col items-end gap-2 z-20">
