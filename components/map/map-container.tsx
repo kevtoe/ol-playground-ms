@@ -11,9 +11,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Toaster } from "@/components/ui/toaster"
 import { useToast } from "@/components/ui/use-toast"
 import { Loader, MapIcon, MapPinOffIcon as MapOff, UploadCloud } from "lucide-react"
-import type { FeatureStyle, InteractionType } from "@/lib/types"
-import type { Feature } from "ol"
-import type { Geometry } from "ol/geom"
+import type { FeatureStyle } from "@/lib/types"
 import { DEFAULT_POLYGON_STYLE, DEFAULT_LINE_STYLE } from "@/lib/style-manager"
 
 export default function MapContainer() {
@@ -23,17 +21,15 @@ export default function MapContainer() {
     useOpenLayersMap(featureStyles)
 
   const [currentMode, setCurrentMode] = useState<string>("select")
-  const [selectedFeatures, setSelectedFeatures] = useState<Feature<Geometry>[]>([])
+  const [selectedFeatures, setSelectedFeatures] = useState<any[]>([])
   const [isMapVisible, setIsMapVisible] = useState(true)
   const [isDragging, setIsDragging] = useState(false)
-  const [interaction, setInteraction] = useState<InteractionType>("pan")
-  const [selectedFeature, setSelectedFeature] = useState<Feature<Geometry> | null>(null)
 
-  const updateStyleCode = useCallback((feature: Feature<Geometry> | null) => {
+  const updateStyleCode = useCallback((feature: any | null) => {
     // This function is a placeholder for now.
   }, [])
 
-  useMapInteractions({
+  const { clearSelection } = useMapInteractions({
     map: mapInstance.current,
     vectorSource,
     handleSource,
@@ -43,10 +39,9 @@ export default function MapContainer() {
     setSelectedFeatures,
     featureStyles,
     updateStyleCode,
-    interaction,
-    onSelectFeature: setSelectedFeature,
   })
 
+  // Effect for Drag and Drop functionality
   useEffect(() => {
     const mapDiv = mapRef.current
     if (!mapDiv || !scriptsLoaded) return
@@ -131,20 +126,6 @@ export default function MapContainer() {
     }
   }, [isMapVisible, scriptsLoaded, baseLayer])
 
-  useEffect(() => {
-    if (!selectedFeature) return
-    const handleFeatureChange = () => {
-      const style = featureStyles.current.get(selectedFeature.getId() as string)
-      if (style) {
-        setSelectedFeature(selectedFeature.clone())
-      }
-    }
-    selectedFeature.on("change", handleFeatureChange)
-    return () => {
-      selectedFeature.un("change", handleFeatureChange)
-    }
-  }, [selectedFeature])
-
   const applyStyleToSelectedFeatures = (newStyle: FeatureStyle) => {
     if (selectedFeatures.length === 0) return
     const ol = (window as any).ol
@@ -161,7 +142,6 @@ export default function MapContainer() {
     handleSource.current?.clear()
     featureStyles.current.clear()
     setSelectedFeatures([])
-    setSelectedFeature(null)
   }
 
   return (
@@ -188,14 +168,7 @@ export default function MapContainer() {
 
         <Helper currentMode={currentMode} />
 
-        <Toolbar
-          currentMode={currentMode}
-          setMode={setCurrentMode}
-          clearAll={clearAll}
-          disabled={!scriptsLoaded}
-          interaction={interaction}
-          setInteraction={setInteraction}
-        />
+        <Toolbar currentMode={currentMode} setMode={setCurrentMode} clearAll={clearAll} disabled={!scriptsLoaded} />
 
         <div className="absolute top-4 right-4 flex flex-col items-end gap-2 z-20">
           <Tooltip>
@@ -213,13 +186,13 @@ export default function MapContainer() {
             <TooltipContent>{isMapVisible ? "Hide Basemap" : "Show Basemap"}</TooltipContent>
           </Tooltip>
 
-          {selectedFeature && (
+          {selectedFeatures.length > 0 && (
             <StylingPanel
-              feature={selectedFeature}
-              featureStyles={featureStyles}
-              onStyleChange={() => {
-                vectorSource.current?.changed()
-              }}
+              key={selectedFeatures.map((f) => (window as any).ol.util.getUid(f)).join("-")}
+              selectedFeatures={selectedFeatures}
+              featureStylesRef={featureStyles}
+              applyStyleToSelectedFeatures={applyStyleToSelectedFeatures}
+              onDeselectAll={clearSelection}
             />
           )}
         </div>

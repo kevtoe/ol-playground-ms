@@ -20,11 +20,11 @@ export default function RootLayout({
       <head>
         <style>{`
 html {
-  font-family: ${GeistSans.style.fontFamily};
-  --font-sans: ${GeistSans.variable};
-  --font-mono: ${GeistMono.variable};
+font-family: ${GeistSans.style.fontFamily};
+--font-sans: ${GeistSans.variable};
+--font-mono: ${GeistMono.variable};
 }
-        `}</style>
+      `}</style>
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v9.2.4/ol.css" />
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol-ext@4.0.33/dist/ol-ext.css" />
       </head>
