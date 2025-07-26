@@ -58,16 +58,14 @@ export function useOpenLayersMap(featureStyles: React.MutableRefObject<Map<strin
     <>
       <Script
         src="https://cdn.jsdelivr.net/npm/ol@v9.2.4/dist/ol.js"
-        strategy="lazyOnload"
+        strategy="afterInteractive"
         onLoad={() => setOlLoaded(true)}
       />
       <Script
         src="https://cdn.jsdelivr.net/npm/ol-ext@4.0.33/dist/ol-ext.js"
-        strategy="lazyOnload"
+        strategy="afterInteractive"
         onLoad={() => setOlExtLoaded(true)}
       />
-      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v9.2.4/ol.css" />
-      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol-ext@4.0.33/dist/ol-ext.css" />
     </>
   )
 
