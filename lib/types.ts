@@ -32,3 +32,8 @@ export type FeatureStyle = {
   layers: StyleLayer[]
   arrows: ArrowConfig
 }
+
+export type Preset = {
+  name: string
+  style: FeatureStyle
+}

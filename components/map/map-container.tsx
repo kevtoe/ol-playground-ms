@@ -5,13 +5,14 @@ import { useOpenLayersMap } from "@/hooks/use-openlayers-map"
 import { useMapInteractions } from "@/hooks/use-map-interactions"
 import { Toolbar } from "./toolbar"
 import { StylingPanel } from "./styling-panel"
+import { PresetsPanel } from "./presets-panel"
 import { Helper } from "./helper"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Toaster } from "@/components/ui/toaster"
 import { useToast } from "@/components/ui/use-toast"
-import { Loader, MapIcon, MapPinOffIcon as MapOff, UploadCloud } from "lucide-react"
-import type { FeatureStyle } from "@/lib/types"
+import { Loader, MapIcon, MapPinOffIcon as MapOff, UploadCloud, Library } from "lucide-react"
+import type { FeatureStyle, Preset } from "@/lib/types"
 import { DEFAULT_POLYGON_STYLE, DEFAULT_LINE_STYLE } from "@/lib/style-manager"
 
 export default function MapContainer() {
@@ -24,6 +25,8 @@ export default function MapContainer() {
   const [selectedFeatures, setSelectedFeatures] = useState<any[]>([])
   const [isMapVisible, setIsMapVisible] = useState(true)
   const [isDragging, setIsDragging] = useState(false)
+  const [presets, setPresets] = useState<Preset[]>([])
+  const [isPresetsPanelOpen, setIsPresetsPanelOpen] = useState(false)
 
   const updateStyleCode = useCallback((feature: any | null) => {
     // This function is a placeholder for now.
@@ -127,7 +130,14 @@ export default function MapContainer() {
   }, [isMapVisible, scriptsLoaded, baseLayer])
 
   const applyStyleToSelectedFeatures = (newStyle: FeatureStyle) => {
-    if (selectedFeatures.length === 0) return
+    if (selectedFeatures.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "No Features Selected",
+        description: "Please select one or more features to apply a style.",
+      })
+      return
+    }
     const ol = (window as any).ol
     selectedFeatures.forEach((feature) => {
       const uid = ol.util.getUid(feature)
@@ -135,6 +145,10 @@ export default function MapContainer() {
       featureStyles.current.set(uid, JSON.parse(JSON.stringify(newStyle)))
     })
     vectorSource.current?.changed()
+    toast({
+      title: "Style Applied",
+      description: `The style was applied to ${selectedFeatures.length} feature(s).`,
+    })
   }
 
   const clearAll = () => {
@@ -142,6 +156,31 @@ export default function MapContainer() {
     handleSource.current?.clear()
     featureStyles.current.clear()
     setSelectedFeatures([])
+  }
+
+  const handleSavePreset = (name: string, style: FeatureStyle) => {
+    if (presets.some((p) => p.name === name)) {
+      toast({
+        variant: "destructive",
+        title: "Preset Exists",
+        description: `A preset with the name "${name}" already exists.`,
+      })
+      return
+    }
+    const newPreset: Preset = { name, style: JSON.parse(JSON.stringify(style)) }
+    setPresets((prev) => [...prev, newPreset])
+    toast({
+      title: "Preset Saved",
+      description: `Preset "${name}" has been saved.`,
+    })
+  }
+
+  const handleDeletePreset = (name: string) => {
+    setPresets((prev) => prev.filter((p) => p.name !== name))
+    toast({
+      title: "Preset Deleted",
+      description: `Preset "${name}" has been deleted.`,
+    })
   }
 
   return (
@@ -171,20 +210,36 @@ export default function MapContainer() {
         <Toolbar currentMode={currentMode} setMode={setCurrentMode} clearAll={clearAll} disabled={!scriptsLoaded} />
 
         <div className="absolute top-4 right-4 flex flex-col items-end gap-2 z-20">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setIsMapVisible(!isMapVisible)}
-                disabled={!scriptsLoaded}
-                className="bg-card"
-              >
-                {isMapVisible ? <MapIcon className="h-4 w-4" /> : <MapOff className="h-4 w-4" />}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>{isMapVisible ? "Hide Basemap" : "Show Basemap"}</TooltipContent>
-          </Tooltip>
+          <div className="flex gap-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setIsPresetsPanelOpen(true)}
+                  disabled={!scriptsLoaded}
+                  className="bg-card"
+                >
+                  <Library className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Style Presets</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setIsMapVisible(!isMapVisible)}
+                  disabled={!scriptsLoaded}
+                  className="bg-card"
+                >
+                  {isMapVisible ? <MapIcon className="h-4 w-4" /> : <MapOff className="h-4 w-4" />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{isMapVisible ? "Hide Basemap" : "Show Basemap"}</TooltipContent>
+            </Tooltip>
+          </div>
 
           {selectedFeatures.length > 0 && (
             <StylingPanel
@@ -193,9 +248,18 @@ export default function MapContainer() {
               featureStylesRef={featureStyles}
               applyStyleToSelectedFeatures={applyStyleToSelectedFeatures}
               onDeselectAll={clearSelection}
+              onSavePreset={handleSavePreset}
             />
           )}
         </div>
+        <PresetsPanel
+          isOpen={isPresetsPanelOpen}
+          onOpenChange={setIsPresetsPanelOpen}
+          presets={presets}
+          onApply={applyStyleToSelectedFeatures}
+          onDelete={handleDeletePreset}
+          disabled={selectedFeatures.length === 0}
+        />
         <Toaster />
       </div>
     </TooltipProvider>

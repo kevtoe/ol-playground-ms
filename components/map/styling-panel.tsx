@@ -5,10 +5,20 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { Plus, Copy, ClipboardPaste, X } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Plus, Copy, ClipboardPaste, X, Save } from "lucide-react"
 import { LayerEditor } from "./layer-editor"
 import { ArrowEditor } from "./arrow-editor"
 import { GeomIcon } from "./geom-icon"
@@ -21,6 +31,7 @@ interface StylingPanelProps {
   featureStylesRef: React.MutableRefObject<Map<string, FeatureStyle>>
   applyStyleToSelectedFeatures: (newStyle: FeatureStyle) => void
   onDeselectAll: () => void
+  onSavePreset: (name: string, style: FeatureStyle) => void
 }
 
 export function StylingPanel({
@@ -28,6 +39,7 @@ export function StylingPanel({
   featureStylesRef,
   applyStyleToSelectedFeatures,
   onDeselectAll,
+  onSavePreset,
 }: StylingPanelProps) {
   const { toast } = useToast()
   const isMultiSelect = selectedFeatures.length > 1
@@ -43,6 +55,8 @@ export function StylingPanel({
 
   const [currentStyle, setCurrentStyle] = useState<FeatureStyle>(getInitialStyle)
   const [styleCode, setStyleCode] = useState(() => JSON.stringify(getInitialStyle(), null, 2))
+  const [presetName, setPresetName] = useState("")
+  const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false)
 
   // When the selected feature changes, reset the component's state to match.
   useEffect(() => {
@@ -128,6 +142,16 @@ export function StylingPanel({
       console.error("Failed to paste from clipboard:", error)
       toast({ variant: "destructive", title: "Error", description: "Could not read from clipboard." })
     }
+  }
+
+  const handleSavePreset = () => {
+    if (!presetName.trim()) {
+      toast({ variant: "destructive", title: "Error", description: "Preset name cannot be empty." })
+      return
+    }
+    onSavePreset(presetName, currentStyle)
+    setPresetName("")
+    setIsSaveDialogOpen(false)
   }
 
   return (
@@ -250,6 +274,36 @@ export function StylingPanel({
                   </AccordionContent>
                 </AccordionItem>
               </Accordion>
+              <Dialog open={isSaveDialogOpen} onOpenChange={setIsSaveDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="w-full bg-transparent">
+                    <Save className="h-4 w-4 mr-2" /> Save as Preset
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Save Style Preset</DialogTitle>
+                    <DialogDescription>Enter a name for your new style preset.</DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="name" className="text-right">
+                        Name
+                      </Label>
+                      <Input
+                        id="name"
+                        value={presetName}
+                        onChange={(e) => setPresetName(e.target.value)}
+                        className="col-span-3"
+                        autoFocus
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button onClick={handleSavePreset}>Save Preset</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </CardContent>
           )}
         </div>
