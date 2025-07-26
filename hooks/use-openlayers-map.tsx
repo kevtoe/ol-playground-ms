@@ -2,9 +2,7 @@
 
 import { useCallback } from "react"
 
-import type React from "react"
-
-import { useState, useEffect, useRef } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import Script from "next/script"
 import { createStyleFunction } from "@/lib/style-manager"
 import type { FeatureStyle } from "@/lib/types"
@@ -55,7 +53,7 @@ export function useOpenLayersMap(featureStyles: React.MutableRefObject<Map<strin
   }, [scriptsLoaded, styleFunction])
 
   const Scripts = () => (
-    <>
+    <React.Fragment>
       <Script
         src="https://cdn.jsdelivr.net/npm/ol@v9.2.4/dist/ol.js"
         strategy="afterInteractive"
@@ -66,7 +64,7 @@ export function useOpenLayersMap(featureStyles: React.MutableRefObject<Map<strin
         strategy="afterInteractive"
         onLoad={() => setOlExtLoaded(true)}
       />
-    </>
+    </React.Fragment>
   )
 
   return {
