@@ -2,7 +2,7 @@
 
 import { useCallback } from "react"
 
-import React, { useState, useEffect, useRef } from "react"
+import React, { useState, useEffect, useRef, useMemo } from "react"
 import Script from "next/script"
 import { createStyleFunction } from "@/lib/style-manager"
 import type { FeatureStyle, ZoomSettings } from "@/lib/types"
@@ -10,6 +10,7 @@ import type { FeatureStyle, ZoomSettings } from "@/lib/types"
 export function useOpenLayersMap(
   featureStyles: React.MutableRefObject<Map<string, FeatureStyle>>,
   zoomSettings: ZoomSettings,
+  layerOrderMapRef?: React.MutableRefObject<Map<string, number>>
 ) {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstance = useRef<any>(null)
@@ -26,7 +27,13 @@ export function useOpenLayersMap(
     }
   }, [olLoaded, olExtLoaded])
 
-  const styleFunction = useCallback(createStyleFunction(featureStyles, zoomSettings), [featureStyles, zoomSettings])
+  const styleFunction = useMemo(() => {
+    return createStyleFunction(
+      featureStyles, 
+      zoomSettings, 
+      layerOrderMapRef || { current: new Map() }
+    )
+  }, [featureStyles, zoomSettings, layerOrderMapRef])
 
   useEffect(() => {
     if (scriptsLoaded && mapRef.current && !mapInstance.current) {

@@ -70,6 +70,7 @@ export const DEFAULT_LINE_STYLE: FeatureStyle = {
 export function createStyleFunction(
   featureStyles: React.MutableRefObject<Map<string, FeatureStyle>>,
   zoomSettings: ZoomSettings,
+  layerOrderMap?: React.MutableRefObject<Map<string, number>>,
 ) {
   const simplifiedStyleCache = new Map<string, any[]>()
   let simplifiedGlobalStyle: any[] | null = null
@@ -81,6 +82,10 @@ export function createStyleFunction(
 
     let geometry = feature.getGeometry()
     if (!geometry) return []
+    
+    // Check layer visibility - if layer is hidden, return empty styles
+    const layerVisible = feature.get('layerVisible')
+    if (layerVisible === false) return []
     
     // Handle spline features - generate smooth curve from control points
     const isSpline = feature.get('isSpline')
@@ -99,6 +104,11 @@ export function createStyleFunction(
     
     const geomType = geometry.getType()
     const uid = ol.util.getUid(feature)
+    
+    // Get the layer order for zIndex calculation
+    const layerId = `layer-${uid}`
+    const layerOrder = layerOrderMap?.current?.get(layerId) ?? 0
+    const baseZIndex = layerOrder * 100 // Multiply by 100 to leave room for style layers
 
     // --- Strategy 3: Style Simplification ---
     if (zoomSettings.enabled && resolution > zoomSettings.threshold) {
@@ -125,6 +135,7 @@ export function createStyleFunction(
             width: zoomSettings.style.strokeWidth,
           }),
           fill: geomType === "Polygon" || geomType === "Circle" ? new ol.style.Fill({ color: fillColor }) : undefined,
+          zIndex: baseZIndex,
         })
 
         const styles = [style]
@@ -144,6 +155,7 @@ export function createStyleFunction(
               geomType === "Polygon" || geomType === "Circle"
                 ? new ol.style.Fill({ color: zoomSettings.style.fillColor })
                 : undefined,
+            zIndex: baseZIndex,
           })
           simplifiedGlobalStyle = [style]
           lastGlobalSettings = currentGlobalSettings
@@ -182,7 +194,7 @@ export function createStyleFunction(
                 fill: new ol.style.Fill({ color: 'rgba(255, 0, 0, 0.8)' }),
                 stroke: new ol.style.Stroke({ color: 'white', width: 2 })
               }),
-              zIndex: 1000
+              zIndex: baseZIndex + 1000
             })
           )
         })
@@ -209,7 +221,7 @@ export function createStyleFunction(
                 fill: new ol.style.Fill({ color: 'orange' }),
                 stroke: new ol.style.Stroke({ color: 'white', width: 2 })
               }),
-              zIndex: 1000
+              zIndex: baseZIndex + 1000
             })
           )
         }
@@ -227,7 +239,7 @@ export function createStyleFunction(
             geomType === "Polygon" || geomType === "Circle"
               ? new ol.style.Fill({ color: "rgba(255, 165, 0, 0.2)" })
               : undefined,
-          zIndex: 0,
+          zIndex: baseZIndex + 5, // Selection outline should be above the base layer but below other layers
         }),
       )
     }
@@ -236,7 +248,7 @@ export function createStyleFunction(
       styles.push(
         new ol.style.Style({
           stroke: new ol.style.Stroke({ color: "rgba(255, 193, 7, 0.6)", width: maxWidth + 6 }),
-          zIndex: 0,
+          zIndex: baseZIndex + 3, // Hover outline should be above the base layer
         }),
       )
     }
@@ -270,7 +282,7 @@ export function createStyleFunction(
         }
       }
 
-      styles.push(new ol.style.Style({ geometry: layerGeom, stroke, fill, zIndex: index + 10 }))
+      styles.push(new ol.style.Style({ geometry: layerGeom, stroke, fill, zIndex: baseZIndex + index + 10 }))
     })
 
     if (featureStyle.arrows.enabled && geomType === "LineString") {
@@ -293,7 +305,7 @@ export function createStyleFunction(
             rotation: -rotation,
             scale: arrows.size / 20,
           }),
-          zIndex: 100,
+          zIndex: baseZIndex + 100,
         })
       }
 
@@ -306,7 +318,7 @@ export function createStyleFunction(
           new ol.style.Style({
             geometry: new ol.geom.Point(p2),
             image: arrowStyle.getImage(),
-            zIndex: arrowStyle.getZIndex(),
+            zIndex: baseZIndex + 100,
           }),
         )
       }
@@ -320,7 +332,7 @@ export function createStyleFunction(
           new ol.style.Style({
             geometry: new ol.geom.Point(p1), // Place arrow at the start point
             image: arrowStyle.getImage(),
-            zIndex: arrowStyle.getZIndex(),
+            zIndex: baseZIndex + 100,
           }),
         )
       }
@@ -345,7 +357,7 @@ export function createStyleFunction(
               new ol.style.Style({
                 geometry: new ol.geom.Point(point),
                 image: arrowStyle.getImage(),
-                zIndex: arrowStyle.getZIndex(),
+                zIndex: baseZIndex + 100,
               }),
             )
             nextArrowDist += arrowSpacing

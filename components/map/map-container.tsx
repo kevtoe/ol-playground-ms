@@ -1,17 +1,18 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { useOpenLayersMap } from "@/hooks/use-openlayers-map"
 import { useMapInteractions } from "@/hooks/use-map-interactions"
+import { useLayerManager } from "@/hooks/use-layer-manager"
 import { Toolbar } from "@/components/toolbar/toolbar"
 import { StylingPanel } from "@/components/styling/styling-panel"
-import { LeftPresetsPanel } from "@/components/presets/left-presets-panel"
-import { Helper } from "@/components/toolbar/helper"
+import { ConsolidatedLeftPanel } from "@/components/panels/consolidated-left-panel"
+import { LayerDragDropProvider } from "@/components/layers/layer-drag-drop"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Toaster } from "@/components/ui/toaster"
 import { useToast } from "@/hooks/use-toast"
-import { Loader, MapIcon, MapPinOffIcon as MapOff, UploadCloud, Library, Settings, EyeOff } from "lucide-react"
+import { Loader, MapIcon, MapPinOffIcon as MapOff, UploadCloud, Settings, EyeOff, Menu } from "lucide-react"
 import { SettingsDialog } from "@/components/settings/settings-dialog"
 import type { FeatureStyle, Preset, ZoomSettings } from "@/lib/types"
 import { DEFAULT_POLYGON_STYLE, DEFAULT_LINE_STYLE } from "@/lib/style-manager"
@@ -36,19 +37,31 @@ export default function MapContainer({ serverPresets }: MapContainerProps) {
     },
     defaultZoom: 17,
   })
-  const { mapRef, mapInstance, vectorSource, handleSource, baseLayer, scriptsLoaded, Scripts } = useOpenLayersMap(
-    featureStyles,
-    zoomSettings,
-  )
 
   const [currentMode, setCurrentMode] = useState<string>("select")
   const [selectedFeatures, setSelectedFeatures] = useState<any[]>([])
   const [isMapVisible, setIsMapVisible] = useState(true)
   const [isDragging, setIsDragging] = useState(false)
   const [presets, setPresets] = useState<Preset[]>(serverPresets)
-  const [isPresetsPanelOpen, setIsPresetsPanelOpen] = useState(false)
   const [currentZoomInfo, setCurrentZoomInfo] = useState({ zoom: 15, resolution: 0 })
   const [currentCenter, setCurrentCenter] = useState({ lat: -30.777457, lon: 121.505639 })
+  const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(false)
+
+  // Layer management - initialize first with dummy vectorSource ref
+  const layerManager = useLayerManager(useRef<any>(null), featureStyles, selectedFeatures, setSelectedFeatures)
+
+  const { mapRef, mapInstance, vectorSource, handleSource, baseLayer, scriptsLoaded, Scripts } = useOpenLayersMap(
+    featureStyles,
+    zoomSettings,
+    layerManager.layerOrderMapRef,
+  )
+
+  // Update layer manager with actual vectorSource once available
+  useEffect(() => {
+    if (vectorSource.current && layerManager.vectorSourceRef) {
+      layerManager.vectorSourceRef.current = vectorSource.current
+    }
+  }, [vectorSource.current, layerManager.vectorSourceRef])
 
   const updateStyleCode = useCallback((feature: any | null) => {
     // This function is a placeholder for now.
@@ -64,6 +77,7 @@ export default function MapContainer({ serverPresets }: MapContainerProps) {
     setSelectedFeatures,
     featureStyles,
     updateStyleCode,
+    onFeatureCreate: layerManager.addLayerFromFeature,
   })
 
   const clearSelection = useCallback(() => {
@@ -119,6 +133,25 @@ export default function MapContainer({ serverPresets }: MapContainerProps) {
     }
   }, [currentMode, clearSelection])
 
+  // Sync selection from OpenLayers to layer manager (one-way only to prevent loops)
+  const selectionTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  useEffect(() => {
+    // Debounce selection updates to prevent rapid changes
+    if (selectionTimeoutRef.current) {
+      clearTimeout(selectionTimeoutRef.current)
+    }
+    
+    selectionTimeoutRef.current = setTimeout(() => {
+      layerManager.selectLayersFromFeatures(selectedFeatures)
+    }, 50) // 50ms debounce
+    
+    return () => {
+      if (selectionTimeoutRef.current) {
+        clearTimeout(selectionTimeoutRef.current)
+      }
+    }
+  }, [selectedFeatures])
+
   // Effect for Drag and Drop functionality
   useEffect(() => {
     const mapDiv = mapRef.current
@@ -160,6 +193,12 @@ export default function MapContainer({ serverPresets }: MapContainerProps) {
             })
 
             vectorSource.current.addFeatures(features)
+            
+            // Add layers for imported features
+            features.forEach((feature: any) => {
+              layerManager.addLayerFromFeature(feature)
+            })
+            
             mapInstance.current.getView().fit(vectorSource.current.getExtent(), {
               padding: [50, 50, 50, 50],
               duration: 1000,
@@ -251,6 +290,11 @@ export default function MapContainer({ serverPresets }: MapContainerProps) {
     handleSource.current?.clear()
     featureStyles.current.clear()
     setSelectedFeatures([])
+    
+    // Clear all layers
+    Array.from(layerManager.state.layers.values()).forEach(layer => {
+      layerManager.operations.deleteLayer(layer.id)
+    })
   }
 
   const handleSavePreset = (name: string, style: FeatureStyle) => {
@@ -287,10 +331,14 @@ export default function MapContainer({ serverPresets }: MapContainerProps) {
     })
   }
 
+  // Memoize ordered layers to prevent unnecessary re-renders
+  const orderedLayers = useMemo(() => layerManager.getOrderedLayers(), [layerManager.state.layers, layerManager.state.groups])
+
   return (
     <TooltipProvider>
-      <Scripts />
-      <div className="w-full h-full relative">
+      <LayerDragDropProvider>
+        <Scripts />
+        <div className="w-full h-full relative">
         <div ref={mapRef} className="w-full h-full bg-black" />
         {!scriptsLoaded && (
           <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-10">
@@ -309,35 +357,105 @@ export default function MapContainer({ serverPresets }: MapContainerProps) {
           </div>
         )}
 
-        <div className="absolute top-4 left-4 z-20 flex flex-col items-start gap-2">
-          <div className="flex items-center gap-2">
-            <Helper currentMode={currentMode} />
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setIsPresetsPanelOpen((prev) => !prev)}
-                  disabled={selectedFeatures.length === 0}
-                  className="bg-card"
-                >
-                  <Library className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                {selectedFeatures.length === 0 ? "Select a feature to use presets" : "Toggle Presets Panel"}
-              </TooltipContent>
-            </Tooltip>
-          </div>
-          {isPresetsPanelOpen && selectedFeatures.length > 0 && (
-            <LeftPresetsPanel
-              presets={presets}
-              onApply={applyStyleToSelectedFeatures}
-              onDelete={handleDeletePreset}
-              disabled={selectedFeatures.length === 0}
-            />
-          )}
+        <div className="absolute top-4 left-4 z-20">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setIsLeftPanelOpen((prev) => !prev)}
+                className="bg-card"
+              >
+                <Menu className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Toggle Panel</TooltipContent>
+          </Tooltip>
         </div>
+
+        {/* Consolidated Left Panel */}
+        <ConsolidatedLeftPanel
+          isOpen={isLeftPanelOpen}
+          onToggle={() => setIsLeftPanelOpen(!isLeftPanelOpen)}
+          layers={orderedLayers}
+          selectedLayerIds={layerManager.state.selectedLayerIds}
+          onLayerSelect={layerManager.selectFeaturesFromLayers}
+          onLayerUpdate={layerManager.operations.updateLayer}
+          onLayerDelete={(id) => {
+            const layer = layerManager.state.layers.get(id)
+            if (layer) {
+              // Remove from OpenLayers
+              const ol = (window as any).ol
+              if (ol && vectorSource.current) {
+                const feature = vectorSource.current.getFeatures().find((f: any) => 
+                  ol.util.getUid(f) === layer.featureId
+                )
+                if (feature) {
+                  vectorSource.current.removeFeature(feature)
+                  featureStyles.current.delete(layer.featureId)
+                }
+              }
+              // Remove from layer manager
+              layerManager.operations.deleteLayer(id)
+            }
+          }}
+          onLayerReorder={(draggedId, targetId, position) => {
+            // Get all layers and reorder them based on drag & drop
+            const allLayers = Array.from(layerManager.state.layers.values())
+            const draggedLayer = allLayers.find(l => l.id === draggedId)
+            const targetLayer = allLayers.find(l => l.id === targetId)
+            
+            if (!draggedLayer || !targetLayer) return
+            
+            // Sort layers by current order to get proper sequence
+            const sortedLayers = [...allLayers].sort((a, b) => a.order - b.order)
+            const draggedIndex = sortedLayers.findIndex(l => l.id === draggedId)
+            const targetIndex = sortedLayers.findIndex(l => l.id === targetId)
+            
+            // Remove dragged layer
+            sortedLayers.splice(draggedIndex, 1)
+            
+            // Calculate insert position
+            let insertIndex = targetIndex
+            if (position === 'before') {
+              insertIndex = targetIndex
+            } else if (position === 'after') {
+              insertIndex = targetIndex + (draggedIndex < targetIndex ? 0 : 1)
+            }
+            
+            // Insert at new position
+            sortedLayers.splice(insertIndex, 0, draggedLayer)
+            
+            // Update orders with proper sequencing
+            sortedLayers.forEach((layer, index) => {
+              layer.order = index
+            })
+            
+            layerManager.operations.reorderLayers(sortedLayers)
+          }}
+          onGroupCreate={() => {
+            const groupId = `group-${Date.now()}`
+            layerManager.operations.addGroup({
+              id: groupId,
+              name: `Group ${Array.from(layerManager.state.groups.values()).length + 1}`,
+              visible: true,
+              collapsed: false,
+              order: layerManager.state.nextOrder,
+              layerIds: [],
+              created: Date.now()
+            })
+          }}
+          onGroupUpdate={layerManager.operations.updateGroup}
+          onGroupDelete={layerManager.operations.deleteGroup}
+          onLayerVisibilityToggle={layerManager.operations.toggleLayerVisibility}
+          onGroupVisibilityToggle={layerManager.operations.toggleGroupVisibility}
+          onMoveToGroup={layerManager.operations.moveToGroup}
+          presets={presets}
+          onPresetApply={applyStyleToSelectedFeatures}
+          onPresetDelete={handleDeletePreset}
+          presetsDisabled={selectedFeatures.length === 0}
+          currentMode={currentMode}
+        />
 
         <Toolbar currentMode={currentMode} setMode={setCurrentMode} clearAll={clearAll} disabled={!scriptsLoaded} />
 
@@ -399,7 +517,8 @@ export default function MapContainer({ serverPresets }: MapContainerProps) {
           currentResolution={currentZoomInfo.resolution}
         />
         <Toaster />
-      </div>
+        </div>
+      </LayerDragDropProvider>
     </TooltipProvider>
   )
 }

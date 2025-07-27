@@ -13,6 +13,7 @@ export function useMapInteractions({
   setSelectedFeatures,
   featureStyles,
   updateStyleCode,
+  onFeatureCreate,
 }: any) {
   const interactions = useRef<{ [key: string]: any }>({})
   const selectInteractionRef = useRef<any>(null)
@@ -49,6 +50,11 @@ export function useMapInteractions({
       const defaultStyle =
         geomType === "Polygon" || geomType === "Circle" ? { ...DEFAULT_POLYGON_STYLE } : { ...DEFAULT_LINE_STYLE }
       featureStyles.current.set(ol.util.getUid(e.feature), JSON.parse(JSON.stringify(defaultStyle)))
+      
+      // Notify about new feature creation
+      if (onFeatureCreate) {
+        onFeatureCreate(e.feature)
+      }
     }
 
     switch (mode) {
@@ -154,6 +160,11 @@ export function useMapInteractions({
             // Apply default style
             const defaultStyle = { ...DEFAULT_LINE_STYLE }
             featureStyles.current.set(ol.util.getUid(finalFeature), JSON.parse(JSON.stringify(defaultStyle)))
+            
+            // Notify about new feature creation
+            if (onFeatureCreate) {
+              onFeatureCreate(finalFeature)
+            }
             
             // Reset state
             isDrawing = false
