@@ -86,15 +86,16 @@ export function useOpenLayersMap(
   const Scripts = () => (
     <React.Fragment>
       <Script
-        src="https://cdn.jsdelivr.net/npm/ol@v9.2.4/dist/ol.js"
+        src="/ol.js"
         strategy="afterInteractive"
         onLoad={() => setOlLoaded(true)}
       />
       <Script
-        src="https://cdn.jsdelivr.net/npm/ol-ext@4.0.33/dist/ol-ext.js"
+        src="/ol-ext.js"
         strategy="afterInteractive"
         onLoad={() => setOlExtLoaded(true)}
       />
+      <style>{`@import url('/ol-ext.css');`}</style>
     </React.Fragment>
   )
 

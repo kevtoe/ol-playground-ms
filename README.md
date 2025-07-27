@@ -185,4 +185,154 @@ This project is open source and available under the [MIT License](LICENSE).
 
 ---
 
-**Built with** ❤️ using OpenLayers, Next.js, and TypeScript
+## 🚀 v0.dev Integration Guide
+
+This project is designed to work seamlessly with [v0.dev](https://v0.dev) for AI-powered UI development while maintaining full local GitHub integration.
+
+### 🔗 **The v0.dev ↔ GitHub ↔ Local Triangle**
+
+```
+v0.dev Preview  ←→  GitHub  ←→  Local Development
+     AI UI      ←    Git    →   Full Testing
+```
+
+### ⚠️ **CRITICAL SETUP: Library Files Required**
+
+**For v0.dev preview to work correctly, you MUST download these files:**
+
+```bash
+# Run from project root:
+mkdir -p public
+
+# Download OpenLayers
+curl -o public/ol.js https://cdn.jsdelivr.net/npm/ol@v9.2.4/dist/ol.js
+curl -o public/ol.css https://cdn.jsdelivr.net/npm/ol@v9.2.4/dist/ol.css
+
+# Download OpenLayers Extensions
+curl -o public/ol-ext.js https://cdn.jsdelivr.net/npm/ol-ext@4.0.33/dist/ol-ext.js
+curl -o public/ol-ext.css https://cdn.jsdelivr.net/npm/ol-ext@4.0.33/dist/ol-ext.css
+```
+
+**Required file structure:**
+```
+ol-playground-ms/
+├── public/
+│   ├── ol.js          # OpenLayers library (required)
+│   ├── ol.css         # OpenLayers styles (required)
+│   ├── ol-ext.js      # Extensions (UndoRedo, etc.)
+│   └── ol-ext.css     # Extension styles (required)
+└── ...
+```
+
+### 🔄 **Complete Workflow Examples**
+
+#### **Scenario A: v0 → Local**
+1. **v0.dev**: Generate new UI components with AI assistance
+2. **Download files**: Run setup commands above
+3. **Test locally**: `pnpm dev` for full functionality
+4. **Commit changes**: Push to GitHub (include `/public` files!)
+
+#### **Scenario B: Local → v0**
+1. **Local development**: Make changes with full testing
+2. **Push to GitHub**: Commit your changes
+3. **Open in v0**: GitHub integration loads latest
+4. **Continue iterating**: v0 loads from your GitHub repo
+
+### 🛠️ **Environment Differences**
+
+| Feature | v0.dev Preview | Local Development |
+|---------|----------------|-------------------|
+| **Library Source** | CDN fallback | `/public` files |
+| **Development** | AI-assisted | Full testing |
+| **Debugging** | Limited | Full debugger |
+| **Hot Reload** | v0 preview | Next.js HMR |
+
+### 📊 **Troubleshooting v0.dev Issues**
+
+#### **MIME Type Error (Critical)**
+- **Symptom**: `Content-Type: text/plain` errors
+- **Root Cause**: v0.dev's module system conflicts with ol-ext's legacy architecture
+- **Solution**: Download files to `/public` directory (commands above)
+- **Files Required**: ol.js, ol.css, ol-ext.js, ol-ext.css
+
+#### **Missing UndoRedo**
+- **Symptom**: `window.ol.interaction.UndoRedo undefined`
+- **Fix**: Ensure ol-ext.js loads after ol.js (handled automatically)
+
+#### **Styling Issues**
+- **Symptom**: Missing extension styles
+- **Fix**: Include ol-ext.css in addition to ol.css
+
+### 🎯 **Quick Start Checklist**
+
+**For v0.dev compatibility:**
+- [ ] Clone repository locally
+- [ ] Run download commands above
+- [ ] Verify `/public` directory contains all 4 files
+- [ ] Test locally with `pnpm dev`
+- [ ] Commit `/public` files to GitHub
+- [ ] Import into v0.dev from GitHub
+
+**For local development:**
+- [ ] Follow standard Next.js setup below
+- [ ] Ensure library files are downloaded
+- [ ] Run `pnpm install && pnpm dev`
+
+### 📁 v0.dev Setup (Local Files Required)
+
+#### **Step 1: Library Files Setup**
+Download these files to `/public` directory:
+```bash
+# Download OpenLayers
+wget https://cdn.jsdelivr.net/npm/ol@v9.2.4/dist/ol.js -O public/ol.js
+wget https://cdn.jsdelivr.net/npm/ol@v9.2.4/dist/ol.css -O public/ol.css
+
+# Download OpenLayers Extensions  
+wget https://cdn.jsdelivr.net/npm/ol-ext@4.0.33/dist/ol-ext.js -O public/ol-ext.js
+wget https://cdn.jsdelivr.net/npm/ol-ext@4.0.33/dist/ol-ext.css -O public/ol-ext.css
+```
+
+#### **Step 2: Verify File Structure**
+```
+ol-playground-ms/
+├── public/
+│   ├── ol.js          # OpenLayers library
+│   ├── ol.css         # OpenLayers styles
+│   ├── ol-ext.js      # OpenLayers extensions
+│   └── ol-ext.css     # Extension styles
+├── components/
+└── ...
+```
+
+#### **Step 3: Environment Detection**
+The codebase automatically handles both environments:
+- **v0.dev**: Uses CDN URLs when files aren't found locally
+- **Local**: Uses `/public` directory files
+- **Production**: Uses CDN as fallback
+
+### 🔄 Workflow Examples
+
+#### **Scenario 1: v0 → Local**
+1. **Start in v0.dev**: Generate new UI components
+2. **Download files**: Run setup commands above
+3. **Test locally**: `pnpm dev` for full functionality
+4. **Commit changes**: Push to GitHub
+
+#### **Scenario 2: Local → v0**
+1. **Develop locally**: Make changes with full testing
+2. **Push to GitHub**: Commit your changes
+3. **Open in v0**: GitHub integration loads latest
+4. **Continue iterating**: v0 loads from your repo
+
+### 🛠️ Environment Variables
+
+Create `.env.local` for local development:
+```bash
+# Use local files (set to false for CDN fallback)
+NEXT_PUBLIC_USE_LOCAL_LIBS=true
+```
+
+### 📊 Troubleshooting v0.dev Issues
+
+#### **MIME Type Error**
+- **Symptom**: `Content-Type 
