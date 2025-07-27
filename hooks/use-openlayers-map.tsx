@@ -5,9 +5,12 @@ import { useCallback } from "react"
 import React, { useState, useEffect, useRef } from "react"
 import Script from "next/script"
 import { createStyleFunction } from "@/lib/style-manager"
-import type { FeatureStyle } from "@/lib/types"
+import type { FeatureStyle, ZoomSettings } from "@/lib/types"
 
-export function useOpenLayersMap(featureStyles: React.MutableRefObject<Map<string, FeatureStyle>>) {
+export function useOpenLayersMap(
+  featureStyles: React.MutableRefObject<Map<string, FeatureStyle>>,
+  zoomSettings: ZoomSettings,
+) {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstance = useRef<any>(null)
   const vectorSource = useRef<any>(null)
@@ -23,7 +26,7 @@ export function useOpenLayersMap(featureStyles: React.MutableRefObject<Map<strin
     }
   }, [olLoaded, olExtLoaded])
 
-  const styleFunction = useCallback(createStyleFunction(featureStyles), [featureStyles])
+  const styleFunction = useCallback(createStyleFunction(featureStyles, zoomSettings), [featureStyles, zoomSettings])
 
   useEffect(() => {
     if (scriptsLoaded && mapRef.current && !mapInstance.current) {
@@ -51,6 +54,17 @@ export function useOpenLayersMap(featureStyles: React.MutableRefObject<Map<strin
       })
     }
   }, [scriptsLoaded, styleFunction])
+
+  useEffect(() => {
+    if (mapInstance.current && vectorSource.current) {
+      const layers = mapInstance.current.getLayers().getArray()
+      const vectorLayer = layers.find((layer: any) => layer.getSource() === vectorSource.current)
+      if (vectorLayer) {
+        vectorLayer.setStyle(styleFunction)
+        vectorSource.current.changed()
+      }
+    }
+  }, [styleFunction])
 
   const Scripts = () => (
     <React.Fragment>

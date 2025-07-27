@@ -1,0 +1,62 @@
+{
+  "layers": [
+    {
+      "id": "layer1753593046356",
+      "strokeColor": "#3fff0a",
+      "strokeWidth": 18,
+      "strokeOpacity": 0.4,
+      "fillColor": "#0000ff",
+      "fillOpacity": 0.4,
+      "fillPattern": {
+        "type": "none",
+        "color": "#000000",
+        "size": 1,
+        "spacing": 5,
+        "angle": 0
+      },
+      "offset": 0
+    },
+    {
+      "id": "layer1753593069290",
+      "strokeColor": "#f86b0d",
+      "strokeWidth": 1,
+      "strokeOpacity": 1,
+      "fillColor": "#000000",
+      "fillOpacity": 0.4,
+      "fillPattern": {
+        "type": "none",
+        "color": "#000000",
+        "size": 3,
+        "spacing": 8,
+        "angle": 0
+      },
+      "offset": 10
+    },
+    {
+      "id": "layer1753593086479",
+      "strokeColor": "#00ff2a",
+      "strokeWidth": 2,
+      "strokeOpacity": 1,
+      "fillColor": "#000000",
+      "fillOpacity": 0.4,
+      "fillPattern": {
+        "type": "none",
+        "color": "#000000",
+        "size": 3,
+        "spacing": 8,
+        "angle": 0
+      },
+      "offset": -10
+    }
+  ],
+  "arrows": {
+    "enabled": true,
+    "atStart": true,
+    "atEnd": true,
+    "alongPath": true,
+    "color": "#ff0000",
+    "size": 12,
+    "style": "chevron",
+    "spacing": 120
+  }
+}

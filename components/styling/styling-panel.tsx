@@ -23,13 +23,13 @@ import { LayerEditor } from "./layer-editor"
 import { ArrowEditor } from "./arrow-editor"
 import { GeomIcon } from "./geom-icon"
 import type { FeatureStyle, StyleLayer } from "@/lib/types"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast"
 import { DEFAULT_LINE_STYLE } from "@/lib/style-manager"
 
 interface StylingPanelProps {
   selectedFeatures: any[]
   featureStylesRef: React.MutableRefObject<Map<string, FeatureStyle>>
-  applyStyleToSelectedFeatures: (newStyle: FeatureStyle) => void
+  applyStyleToSelectedFeatures: (newStyle: FeatureStyle, options?: { silent?: boolean }) => void
   onDeselectAll: () => void
   onSavePreset: (name: string, style: FeatureStyle) => void
 }
@@ -58,25 +58,25 @@ export function StylingPanel({
   const [presetName, setPresetName] = useState("")
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false)
 
-  // When the selected feature changes, reset the component's state to match.
   useEffect(() => {
     const newStyle = getInitialStyle()
     setCurrentStyle(newStyle)
   }, [selectedFeatures, featureStylesRef])
 
-  // Sync the style object to the JSON text area whenever it changes.
   useEffect(() => {
     setStyleCode(JSON.stringify(currentStyle, null, 2))
   }, [currentStyle])
 
-  const updateSingleFeatureStyle = (newStyle: FeatureStyle) => {
+  const updateAndApplyStyle = (newStyle: FeatureStyle, options?: { silent?: boolean }) => {
     setCurrentStyle(newStyle)
-    applyStyleToSelectedFeatures(newStyle)
+    if (singleFeature) {
+      applyStyleToSelectedFeatures(newStyle, options)
+    }
   }
 
   const updateLayerStyle = (layerId: string, newLayerStyle: Partial<StyleLayer>) => {
     const newLayers = currentStyle.layers.map((l) => (l.id === layerId ? { ...l, ...newLayerStyle } : l))
-    updateSingleFeatureStyle({ ...currentStyle, layers: newLayers })
+    updateAndApplyStyle({ ...currentStyle, layers: newLayers }, { silent: true })
   }
 
   const addLayer = () => {
@@ -90,12 +90,12 @@ export function StylingPanel({
       fillPattern: { type: "none", color: "#000000", size: 3, spacing: 8, angle: 0 },
       offset: 0,
     }
-    updateSingleFeatureStyle({ ...currentStyle, layers: [...currentStyle.layers, newLayer] })
+    updateAndApplyStyle({ ...currentStyle, layers: [...currentStyle.layers, newLayer] }, { silent: true })
   }
 
   const removeLayer = (layerId: string) => {
     const newLayers = currentStyle.layers.filter((l) => l.id !== layerId)
-    updateSingleFeatureStyle({ ...currentStyle, layers: newLayers })
+    updateAndApplyStyle({ ...currentStyle, layers: newLayers }, { silent: true })
   }
 
   const moveLayer = (layerId: string, direction: "up" | "down") => {
@@ -106,22 +106,16 @@ export function StylingPanel({
     const newIndex = direction === "up" ? index - 1 : index + 1
     if (newIndex < 0 || newIndex >= layers.length) return
     ;[layers[index], layers[newIndex]] = [layers[newIndex], layers[index]]
-
-    updateSingleFeatureStyle({ ...currentStyle, layers })
+    updateAndApplyStyle({ ...currentStyle, layers }, { silent: true })
   }
 
   const handleApplyCode = () => {
     try {
       const newStyle = JSON.parse(styleCode)
-      if (!isMultiSelect) {
-        updateSingleFeatureStyle(newStyle)
-      } else {
-        applyStyleToSelectedFeatures(newStyle)
+      applyStyleToSelectedFeatures(newStyle) // This will show toast
+      if (singleFeature) {
+        setCurrentStyle(newStyle)
       }
-      toast({
-        title: "Style Applied",
-        description: `The style was successfully applied from JSON.`,
-      })
     } catch (error) {
       console.error("Invalid style JSON:", error)
       toast({ variant: "destructive", title: "Error", description: "Invalid JSON format." })
@@ -233,7 +227,10 @@ export function StylingPanel({
                 <ArrowEditor
                   arrows={currentStyle.arrows}
                   updateArrowStyle={(newArrowStyle) =>
-                    updateSingleFeatureStyle({ ...currentStyle, arrows: { ...currentStyle.arrows, ...newArrowStyle } })
+                    updateAndApplyStyle(
+                      { ...currentStyle, arrows: { ...currentStyle.arrows, ...newArrowStyle } },
+                      { silent: true },
+                    )
                   }
                 />
               )}

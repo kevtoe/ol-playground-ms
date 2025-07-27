@@ -1,5 +1,15 @@
 import type React from "react"
-import type { FeatureStyle, StyleLayer } from "./types"
+import type { FeatureStyle, StyleLayer, ZoomSettings } from "./types"
+
+const hexToRgba = (hex: string, opacity: number) => {
+  if (!/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)) return `rgba(0,0,0,${opacity})`
+  let c = hex.substring(1).split("")
+  if (c.length === 3) {
+    c = [c[0], c[0], c[1], c[1], c[2], c[2]]
+  }
+  const i = Number.parseInt(`0x${c.join("")}`)
+  return `rgba(${(i >> 16) & 255}, ${(i >> 8) & 255}, ${i & 255}, ${opacity})`
+}
 
 export const DEFAULT_POLYGON_STYLE: FeatureStyle = {
   layers: [
@@ -9,7 +19,7 @@ export const DEFAULT_POLYGON_STYLE: FeatureStyle = {
       strokeWidth: 2,
       strokeOpacity: 1,
       fillColor: "#0000ff",
-      fillOpacity: 0.4,
+      fillOpacity: 0.5,
       fillPattern: {
         type: "none",
         color: "#000000",
@@ -57,18 +67,81 @@ export const DEFAULT_LINE_STYLE: FeatureStyle = {
   },
 }
 
-export function createStyleFunction(featureStyles: React.MutableRefObject<Map<string, FeatureStyle>>) {
+export function createStyleFunction(
+  featureStyles: React.MutableRefObject<Map<string, FeatureStyle>>,
+  zoomSettings: ZoomSettings,
+) {
+  const simplifiedStyleCache = new Map<string, any[]>()
+  let simplifiedGlobalStyle: any[] | null = null
+  let lastGlobalSettings = ""
+
   return function styleFunction(feature: any, resolution: number) {
     const ol = (window as any).ol
     if (!ol) return []
 
-    const uid = ol.util.getUid(feature)
     const geometry = feature.getGeometry()
     if (!geometry) return []
     const geomType = geometry.getType()
+    const uid = ol.util.getUid(feature)
 
-    const defaultStyle = geomType === "Polygon" || geomType === "Circle" ? DEFAULT_POLYGON_STYLE : DEFAULT_LINE_STYLE
-    const featureStyle = featureStyles.current.get(uid) || JSON.parse(JSON.stringify(defaultStyle))
+    // --- Strategy 3: Style Simplification ---
+    if (zoomSettings.enabled && resolution > zoomSettings.threshold) {
+      // Automatic color based on feature's own style
+      if (zoomSettings.automaticColor) {
+        const defaultStyle =
+          geomType === "Polygon" || geomType === "Circle" ? DEFAULT_POLYGON_STYLE : DEFAULT_LINE_STYLE
+        const featureStyle = featureStyles.current.get(uid) || JSON.parse(JSON.stringify(defaultStyle))
+        const firstLayer = featureStyle.layers[0]
+
+        if (!firstLayer) return []
+
+        const strokeColor = hexToRgba(firstLayer.strokeColor, firstLayer.strokeOpacity)
+        const fillColor = hexToRgba(firstLayer.fillColor, firstLayer.fillOpacity)
+        const cacheKey = `${strokeColor}-${fillColor}-${zoomSettings.style.strokeWidth}`
+
+        if (simplifiedStyleCache.has(cacheKey)) {
+          return simplifiedStyleCache.get(cacheKey)
+        }
+
+        const style = new ol.style.Style({
+          stroke: new ol.style.Stroke({
+            color: strokeColor,
+            width: zoomSettings.style.strokeWidth,
+          }),
+          fill: geomType === "Polygon" || geomType === "Circle" ? new ol.style.Fill({ color: fillColor }) : undefined,
+        })
+
+        const styles = [style]
+        simplifiedStyleCache.set(cacheKey, styles)
+        return styles
+      }
+      // Global override color
+      else {
+        const currentGlobalSettings = JSON.stringify(zoomSettings.style)
+        if (currentGlobalSettings !== lastGlobalSettings || !simplifiedGlobalStyle) {
+          const style = new ol.style.Style({
+            stroke: new ol.style.Stroke({
+              color: zoomSettings.style.strokeColor,
+              width: zoomSettings.style.strokeWidth,
+            }),
+            fill:
+              geomType === "Polygon" || geomType === "Circle"
+                ? new ol.style.Fill({ color: zoomSettings.style.fillColor })
+                : undefined,
+          })
+          simplifiedGlobalStyle = [style]
+          lastGlobalSettings = currentGlobalSettings
+        }
+        return simplifiedGlobalStyle
+      }
+    }
+
+    // --- Existing Detailed Style Logic ---
+    const featureStyle =
+      featureStyles.current.get(uid) ||
+      JSON.parse(
+        JSON.stringify(geomType === "Polygon" || geomType === "Circle" ? DEFAULT_POLYGON_STYLE : DEFAULT_LINE_STYLE),
+      )
     const styles: any[] = []
 
     const isSelected = feature.get("selected")
@@ -106,13 +179,6 @@ export function createStyleFunction(featureStyles: React.MutableRefObject<Map<st
       if (layer.offset !== 0 && geomType === "LineString" && ol.coordinate.offsetCoords) {
         const offsetInMapUnits = layer.offset * resolution
         layerGeom = new ol.geom.LineString(ol.coordinate.offsetCoords(geometry.getCoordinates(), offsetInMapUnits))
-      }
-
-      const hexToRgba = (hex: string, opacity: number) => {
-        const r = Number.parseInt(hex.slice(1, 3), 16)
-        const g = Number.parseInt(hex.slice(3, 5), 16)
-        const b = Number.parseInt(hex.slice(5, 7), 16)
-        return `rgba(${r}, ${g}, ${b}, ${opacity})`
       }
 
       const stroke = new ol.style.Stroke({

@@ -36,4 +36,18 @@ export type FeatureStyle = {
 export type Preset = {
   name: string
   style: FeatureStyle
+  isDeletable?: boolean
+}
+
+export type SimplifiedStyle = {
+  strokeColor: string
+  strokeWidth: number
+  fillColor: string
+}
+
+export type ZoomSettings = {
+  enabled: boolean
+  threshold: number
+  automaticColor: boolean
+  style: SimplifiedStyle
 }
