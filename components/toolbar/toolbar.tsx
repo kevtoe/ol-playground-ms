@@ -4,7 +4,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
-import { MousePointer2, Trash2, Spline, RectangleHorizontal, Circle, Eraser, Move, Square, Waves } from "lucide-react"
+import { MousePointer2, Trash2, Spline, TriangleRight, Circle, Eraser, Move, Square, PenLine } from "lucide-react"
 
 interface ToolbarProps {
   currentMode: string
@@ -16,9 +16,9 @@ interface ToolbarProps {
 export function Toolbar({ currentMode, setMode, clearAll, disabled }: ToolbarProps) {
   const tools = [
     { value: "select", icon: <MousePointer2 />, label: "Select / Modify" },
-    { value: "draw-line", icon: <Spline />, label: "Draw Line" },
-    { value: "draw-bezier", icon: <Waves />, label: "Draw Bezier Curve" },
-    { value: "draw-polygon", icon: <RectangleHorizontal />, label: "Draw Polygon" },
+    { value: "draw-line", icon: <PenLine />, label: "Draw Line" },
+    { value: "draw-bezier", icon: <Spline />, label: "Draw Bezier Curve" },
+    { value: "draw-polygon", icon: <TriangleRight />, label: "Draw Polygon" },
     { value: "draw-circle", icon: <Circle />, label: "Draw Circle" },
     { value: "draw-rectangle", icon: <Square />, label: "Draw Rectangle" },
     { value: "offset", icon: <Move />, label: "Offset / Transform" },
