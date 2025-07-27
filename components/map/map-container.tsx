@@ -48,6 +48,7 @@ export default function MapContainer({ serverPresets }: MapContainerProps) {
   const [presets, setPresets] = useState<Preset[]>(serverPresets)
   const [isPresetsPanelOpen, setIsPresetsPanelOpen] = useState(false)
   const [currentZoomInfo, setCurrentZoomInfo] = useState({ zoom: 15, resolution: 0 })
+  const [currentCenter, setCurrentCenter] = useState({ lat: -30.777457, lon: 121.505639 })
 
   const updateStyleCode = useCallback((feature: any | null) => {
     // This function is a placeholder for now.
@@ -89,10 +90,15 @@ export default function MapContainer({ serverPresets }: MapContainerProps) {
     const updateZoomInfo = () => {
       const view = mapInstance.current.getView()
       if (view) {
+        const center = view.getCenter()
         setCurrentZoomInfo({
           zoom: view.getZoom() || 15,
           resolution: view.getResolution() || 0,
         })
+        if (center) {
+          const [lon, lat] = (window as any).ol.proj.toLonLat(center)
+          setCurrentCenter({ lat, lon })
+        }
       }
     }
 
@@ -335,24 +341,11 @@ export default function MapContainer({ serverPresets }: MapContainerProps) {
 
         <Toolbar currentMode={currentMode} setMode={setCurrentMode} clearAll={clearAll} disabled={!scriptsLoaded} />
 
-        <div className="absolute bottom-4 left-4 z-20 flex items-center gap-2">
-          <div className="bg-card/80 backdrop-blur-sm text-card-foreground p-2 rounded-md text-xs font-mono shadow-md">
-            <div>Zoom: {currentZoomInfo.zoom.toFixed(2)}</div>
-            <div>Res: {currentZoomInfo.resolution.toFixed(2)}</div>
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20">
+          <div className="bg-card/80 backdrop-blur-sm text-card-foreground px-3 py-1.5 rounded-full text-xs font-medium shadow-lg border flex items-center gap-2">
+            <span className="tabular-nums">Zoom {currentZoomInfo.zoom.toFixed(1)}</span>
+            <span className="text-muted-foreground">| {Math.abs(currentCenter.lat).toFixed(2)}°{currentCenter.lat >= 0 ? 'N' : 'S'} {Math.abs(currentCenter.lon).toFixed(2)}°{currentCenter.lon >= 0 ? 'E' : 'W'}</span>
           </div>
-          {zoomSettings.enabled && currentZoomInfo.resolution > zoomSettings.threshold && (
-            <Tooltip>
-              <TooltipTrigger>
-                <Badge variant="secondary" className="flex items-center gap-1.5 py-1 px-2 cursor-default">
-                  <EyeOff className="h-3.5 w-3.5" />
-                  Simplified
-                </Badge>
-              </TooltipTrigger>
-              <TooltipContent side="top" align="start">
-                <p>Styles are simplified. Zoom in to see full detail.</p>
-              </TooltipContent>
-            </Tooltip>
-          )}
         </div>
 
         <div className="absolute top-4 right-4 flex flex-col items-end gap-2 z-20">
