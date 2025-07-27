@@ -28,6 +28,8 @@ export const DEFAULT_POLYGON_STYLE: FeatureStyle = {
         angle: 0,
       },
       offset: 0,
+      dashed: false,
+      dashPattern: [10, 10],
     },
   ],
   arrows: {
@@ -53,6 +55,8 @@ export const DEFAULT_LINE_STYLE: FeatureStyle = {
       fillOpacity: 0.4,
       fillPattern: { type: "none", color: "#000000", size: 1, spacing: 5, angle: 0 },
       offset: 0,
+      dashed: false,
+      dashPattern: [10, 10],
     },
   ],
   arrows: {
@@ -133,6 +137,7 @@ export function createStyleFunction(
           stroke: new ol.style.Stroke({
             color: strokeColor,
             width: zoomSettings.style.strokeWidth,
+            lineDash: firstLayer.dashed ? firstLayer.dashPattern : undefined,
           }),
           fill: geomType === "Polygon" || geomType === "Circle" ? new ol.style.Fill({ color: fillColor }) : undefined,
           zIndex: baseZIndex,
@@ -263,6 +268,7 @@ export function createStyleFunction(
       const stroke = new ol.style.Stroke({
         color: hexToRgba(layer.strokeColor, layer.strokeOpacity),
         width: layer.strokeWidth,
+        lineDash: layer.dashed ? layer.dashPattern : undefined,
       })
 
       let fill

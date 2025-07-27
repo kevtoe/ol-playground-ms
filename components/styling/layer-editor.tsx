@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
+import { Switch } from "@/components/ui/switch"
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip"
 import { ChevronUp, ChevronDown, Trash2 } from "lucide-react"
 import { PatternEditor } from "./pattern-editor"
@@ -162,6 +163,56 @@ export function LayerEditor({
                   value={[layer.offset]}
                   onValueChange={([value]) => handleUpdate("offset", value)}
                 />
+              </div>
+            )}
+            
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor={`dashed-${layer.id}`}>Dashed Line</Label>
+                <Switch
+                  id={`dashed-${layer.id}`}
+                  checked={layer.dashed}
+                  onCheckedChange={(checked) => handleUpdate("dashed", checked)}
+                />
+              </div>
+            </div>
+            {layer.dashed && (
+              <div className="space-y-2">
+                <Label>Dash Pattern</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label htmlFor={`dash-length-${layer.id}`} className="text-xs">Length</Label>
+                    <Input
+                      id={`dash-length-${layer.id}`}
+                      type="number"
+                      min="1"
+                      max="50"
+                      value={layer.dashPattern[0] || 10}
+                      onChange={(e) => {
+                        const newPattern = [...layer.dashPattern]
+                        newPattern[0] = parseInt(e.target.value) || 10
+                        handleUpdate("dashPattern", newPattern)
+                      }}
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor={`dash-gap-${layer.id}`} className="text-xs">Gap</Label>
+                    <Input
+                      id={`dash-gap-${layer.id}`}
+                      type="number"
+                      min="1"
+                      max="50"
+                      value={layer.dashPattern[1] || 10}
+                      onChange={(e) => {
+                        const newPattern = [...layer.dashPattern]
+                        newPattern[1] = parseInt(e.target.value) || 10
+                        handleUpdate("dashPattern", newPattern)
+                      }}
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                </div>
               </div>
             )}
             {isPolygon && (

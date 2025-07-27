@@ -15,6 +15,8 @@ export type StyleLayer = {
   fillOpacity: number
   fillPattern: FillPatternConfig
   offset: number
+  dashed: boolean
+  dashPattern: number[]
 }
 
 export type ArrowConfig = {
