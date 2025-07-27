@@ -89,6 +89,8 @@ export function StylingPanel({
       fillOpacity: 0.4,
       fillPattern: { type: "none", color: "#000000", size: 3, spacing: 8, angle: 0 },
       offset: 0,
+      dashed: false,
+      dashPattern: [10, 10],
     }
     updateAndApplyStyle({ ...currentStyle, layers: [...currentStyle.layers, newLayer] }, { silent: true })
   }

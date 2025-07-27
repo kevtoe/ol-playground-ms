@@ -187,9 +187,9 @@ export function LayerEditor({
                       type="number"
                       min="1"
                       max="50"
-                      value={layer.dashPattern[0] || 10}
+                      value={layer.dashPattern?.[0] ?? 10}
                       onChange={(e) => {
-                        const newPattern = [...layer.dashPattern]
+                        const newPattern = [...(layer.dashPattern || [10, 10])]
                         newPattern[0] = parseInt(e.target.value) || 10
                         handleUpdate("dashPattern", newPattern)
                       }}
@@ -203,9 +203,9 @@ export function LayerEditor({
                       type="number"
                       min="1"
                       max="50"
-                      value={layer.dashPattern[1] || 10}
+                      value={layer.dashPattern?.[1] ?? 10}
                       onChange={(e) => {
-                        const newPattern = [...layer.dashPattern]
+                        const newPattern = [...(layer.dashPattern || [10, 10])]
                         newPattern[1] = parseInt(e.target.value) || 10
                         handleUpdate("dashPattern", newPattern)
                       }}
