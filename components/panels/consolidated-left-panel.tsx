@@ -104,10 +104,23 @@ export function ConsolidatedLeftPanel({
     }
   }
 
-  // Layer filtering for search
+  // Layer filtering for search - don't filter out layers in groups
   const filteredLayers = layers.filter(item => {
-    if ('name' in item) {
-      return item.name.toLowerCase().includes(searchQuery.toLowerCase())
+    if ('layerIds' in item) {
+      // It's a group - always include groups in filtered results
+      return true
+    } else if ('name' in item) {
+      // It's a layer - check if it matches search or is in a group that matches
+      const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase())
+      
+      // If this layer is in a group, also check if the group name matches
+      if (item.groupId && searchQuery) {
+        const group = layers.find(g => 'layerIds' in g && g.id === item.groupId) as LayerGroupType | undefined
+        const groupMatches = group?.name.toLowerCase().includes(searchQuery.toLowerCase())
+        return matchesSearch || groupMatches || false
+      }
+      
+      return matchesSearch
     }
     return false
   })
@@ -157,7 +170,6 @@ export function ConsolidatedLeftPanel({
         .map(id => allLayersArray.find(l => l.id === id))
         .filter(Boolean) as Layer[]
       
-      
       return (
         <LayerGroup
           key={item.id}
@@ -176,8 +188,9 @@ export function ConsolidatedLeftPanel({
         />
       )
     } else {
+      // It's a layer - only render if not in a group or if search matches
       if (!item.groupId) {
-        const layerIndex = filteredLayers.filter(l => 'featureId' in l).findIndex(l => l.id === item.id)
+        const layerIndex = layers.filter(l => 'featureId' in l).findIndex(l => l.id === item.id)
         return (
           <LayerItem
             key={item.id}
@@ -312,9 +325,12 @@ export function ConsolidatedLeftPanel({
 
           {/* Presets Tab */}
           <TabsContent value="presets" className="flex-1 flex flex-col m-0 h-0">
+            {/* Presets Header - Same structure as Layers */}
             <div className="flex-shrink-0 p-3 border-b border-border">
-              <h2 className="text-sm font-semibold">Style Presets</h2>
-              <p className="text-xs text-muted-foreground mt-1">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-sm font-semibold">Style Presets</h2>
+              </div>
+              <p className="text-xs text-muted-foreground mb-3">
                 {presetsDisabled ? "Select features to apply presets" : "Click to apply preset to selected features"}
               </p>
             </div>
@@ -362,9 +378,12 @@ export function ConsolidatedLeftPanel({
 
           {/* Help Tab */}
           <TabsContent value="help" className="flex-1 flex flex-col m-0 h-0">
+            {/* Help Header - Same structure as Layers */}
             <div className="flex-shrink-0 p-3 border-b border-border">
-              <h2 className="text-sm font-semibold">Instructions</h2>
-              <p className="text-xs text-muted-foreground mt-1">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-sm font-semibold">Instructions</h2>
+              </div>
+              <p className="text-xs text-muted-foreground mb-3">
                 Current mode: <span className="font-medium capitalize">{currentMode.replace('-', ' ')}</span>
               </p>
             </div>
