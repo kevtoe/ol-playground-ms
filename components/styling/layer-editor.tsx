@@ -45,52 +45,46 @@ export function LayerEditor({
               <div className="flex items-center gap-1">
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6"
+                    <span
+                      className="inline-flex items-center justify-center h-6 w-6 rounded hover:bg-accent hover:text-accent-foreground cursor-pointer disabled:opacity-50"
                       onClick={(e) => {
                         e.stopPropagation()
-                        moveLayer(layer.id, "up")
+                        if (index !== 0) moveLayer(layer.id, "up")
                       }}
-                      disabled={index === 0}
+                      style={{ opacity: index === 0 ? 0.5 : 1, cursor: index === 0 ? 'not-allowed' : 'pointer' }}
                     >
                       <ChevronUp className="h-4 w-4" />
-                    </Button>
+                    </span>
                   </TooltipTrigger>
                   <TooltipContent>Move Up</TooltipContent>
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6"
+                    <span
+                      className="inline-flex items-center justify-center h-6 w-6 rounded hover:bg-accent hover:text-accent-foreground cursor-pointer disabled:opacity-50"
                       onClick={(e) => {
                         e.stopPropagation()
-                        moveLayer(layer.id, "down")
+                        if (index !== totalLayers - 1) moveLayer(layer.id, "down")
                       }}
-                      disabled={index === totalLayers - 1}
+                      style={{ opacity: index === totalLayers - 1 ? 0.5 : 1, cursor: index === totalLayers - 1 ? 'not-allowed' : 'pointer' }}
                     >
                       <ChevronDown className="h-4 w-4" />
-                    </Button>
+                    </span>
                   </TooltipTrigger>
                   <TooltipContent>Move Down</TooltipContent>
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 hover:bg-destructive/20 hover:text-destructive"
+                    <span
+                      className="inline-flex items-center justify-center h-6 w-6 rounded hover:bg-destructive/20 hover:text-destructive cursor-pointer"
                       onClick={(e) => {
                         e.stopPropagation()
-                        removeLayer(layer.id)
+                        if (totalLayers > 1) removeLayer(layer.id)
                       }}
-                      disabled={totalLayers <= 1}
+                      style={{ opacity: totalLayers <= 1 ? 0.5 : 1, cursor: totalLayers <= 1 ? 'not-allowed' : 'pointer' }}
                     >
                       <Trash2 className="h-4 w-4" />
-                    </Button>
+                    </span>
                   </TooltipTrigger>
                   <TooltipContent>Remove Layer</TooltipContent>
                 </Tooltip>

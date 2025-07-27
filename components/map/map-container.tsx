@@ -34,6 +34,7 @@ export default function MapContainer({ serverPresets }: MapContainerProps) {
       strokeWidth: 2,
       fillColor: "#8ac5e6",
     },
+    defaultZoom: 17,
   })
   const { mapRef, mapInstance, vectorSource, handleSource, baseLayer, scriptsLoaded, Scripts } = useOpenLayersMap(
     featureStyles,

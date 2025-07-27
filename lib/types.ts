@@ -50,4 +50,5 @@ export type ZoomSettings = {
   threshold: number
   automaticColor: boolean
   style: SimplifiedStyle
+  defaultZoom: number
 }

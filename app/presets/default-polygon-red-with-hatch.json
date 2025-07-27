@@ -1,0 +1,30 @@
+{
+  "layers": [
+    {
+      "id": "layer1",
+      "strokeColor": "#ff0000",
+      "strokeWidth": 2,
+      "strokeOpacity": 1,
+      "fillColor": "#ff5900",
+      "fillOpacity": 0,
+      "fillPattern": {
+        "type": "hatch",
+        "color": "#fa0000",
+        "size": 1,
+        "spacing": 8,
+        "angle": 32
+      },
+      "offset": 0
+    }
+  ],
+  "arrows": {
+    "enabled": false,
+    "atStart": false,
+    "atEnd": false,
+    "alongPath": false,
+    "color": "#ff0000",
+    "size": 12,
+    "style": "triangle",
+    "spacing": 150
+  }
+}

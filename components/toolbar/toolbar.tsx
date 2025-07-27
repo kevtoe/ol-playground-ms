@@ -4,7 +4,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
-import { MousePointer2, Trash2, Spline, RectangleHorizontal, Circle, Eraser, Move, Square } from "lucide-react"
+import { MousePointer2, Trash2, Spline, RectangleHorizontal, Circle, Eraser, Move, Square, Waves } from "lucide-react"
 
 interface ToolbarProps {
   currentMode: string
@@ -17,6 +17,7 @@ export function Toolbar({ currentMode, setMode, clearAll, disabled }: ToolbarPro
   const tools = [
     { value: "select", icon: <MousePointer2 />, label: "Select / Modify" },
     { value: "draw-line", icon: <Spline />, label: "Draw Line" },
+    { value: "draw-bezier", icon: <Waves />, label: "Draw Bezier Curve" },
     { value: "draw-polygon", icon: <RectangleHorizontal />, label: "Draw Polygon" },
     { value: "draw-circle", icon: <Circle />, label: "Draw Circle" },
     { value: "draw-rectangle", icon: <Square />, label: "Draw Rectangle" },
@@ -38,11 +39,11 @@ export function Toolbar({ currentMode, setMode, clearAll, disabled }: ToolbarPro
           >
             {tools.map((tool) => (
               <Tooltip key={tool.value}>
-                <TooltipTrigger asChild>
-                  <ToggleGroupItem value={tool.value} aria-label={tool.label}>
+                <ToggleGroupItem value={tool.value} aria-label={tool.label} asChild>
+                  <TooltipTrigger>
                     {tool.icon}
-                  </ToggleGroupItem>
-                </TooltipTrigger>
+                  </TooltipTrigger>
+                </ToggleGroupItem>
                 <TooltipContent>
                   <p>{tool.label}</p>
                 </TooltipContent>

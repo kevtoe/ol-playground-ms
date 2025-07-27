@@ -55,6 +55,30 @@ export function SettingsDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-6 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="default-zoom">Default Zoom Level</Label>
+            <div className="flex items-center gap-2">
+              <Slider
+                id="default-zoom"
+                min={1}
+                max={20}
+                step={1}
+                value={[settings.defaultZoom]}
+                onValueChange={([value]) => handleFieldChange("defaultZoom", value)}
+              />
+              <Input
+                type="number"
+                min={1}
+                max={20}
+                value={settings.defaultZoom}
+                onChange={(e) => handleFieldChange("defaultZoom", Number(e.target.value))}
+                className="w-20"
+              />
+            </div>
+            <div className="text-xs text-muted-foreground">
+              The initial zoom level when the map loads (1 = world view, 20 = street level)
+            </div>
+          </div>
           <div className="flex items-center justify-between">
             <Label htmlFor="zoom-simplification" className="flex flex-col gap-1">
               <span>Zoom Simplification</span>

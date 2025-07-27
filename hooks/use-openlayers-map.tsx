@@ -50,10 +50,10 @@ export function useOpenLayersMap(
       mapInstance.current = new ol.Map({
         target: mapRef.current,
         layers: [baseLayer.current, vectorLayer, handleLayer],
-        view: new ol.View({ center: ol.proj.fromLonLat([121.505639, -30.777457]), zoom: 15 }),
+        view: new ol.View({ center: ol.proj.fromLonLat([121.505639, -30.777457]), zoom: zoomSettings.defaultZoom }),
       })
     }
-  }, [scriptsLoaded, styleFunction])
+  }, [scriptsLoaded, styleFunction, zoomSettings.defaultZoom])
 
   useEffect(() => {
     if (mapInstance.current && vectorSource.current) {
@@ -65,6 +65,16 @@ export function useOpenLayersMap(
       }
     }
   }, [styleFunction])
+
+  // Handle zoom level changes
+  useEffect(() => {
+    if (mapInstance.current) {
+      const view = mapInstance.current.getView()
+      if (view) {
+        view.setZoom(zoomSettings.defaultZoom)
+      }
+    }
+  }, [zoomSettings.defaultZoom])
 
   const Scripts = () => (
     <React.Fragment>

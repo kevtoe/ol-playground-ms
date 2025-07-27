@@ -79,8 +79,24 @@ export function createStyleFunction(
     const ol = (window as any).ol
     if (!ol) return []
 
-    const geometry = feature.getGeometry()
+    let geometry = feature.getGeometry()
     if (!geometry) return []
+    
+    // Handle spline features - generate smooth curve from control points
+    const isSpline = feature.get('isSpline')
+    if (isSpline && geometry.getType() === 'LineString') {
+      const splineOptions = feature.get('splineOptions') || {
+        tension: 0.5,
+        pointsPerSeg: 10,
+        normalize: false
+      }
+      
+      // Generate smooth curve using cspline if available
+      if (geometry.cspline) {
+        geometry = geometry.cspline(splineOptions)
+      }
+    }
+    
     const geomType = geometry.getType()
     const uid = ol.util.getUid(feature)
 
@@ -148,6 +164,57 @@ export function createStyleFunction(
     const isHovered = feature.get("hovered")
 
     const maxWidth = Math.max(1, ...featureStyle.layers.map((l: StyleLayer) => l.strokeWidth))
+    
+    // Show vertex points for selected features
+    if (isSelected) {
+      const originalGeometry = feature.getGeometry()
+      let vertexCoords: number[][] = []
+      
+      if (isSpline) {
+        // For spline features, show control points (red)
+        vertexCoords = originalGeometry.getCoordinates()
+        vertexCoords.forEach((coord: number[]) => {
+          styles.push(
+            new ol.style.Style({
+              geometry: new ol.geom.Point(coord),
+              image: new ol.style.Circle({
+                radius: 6,
+                fill: new ol.style.Fill({ color: 'rgba(255, 0, 0, 0.8)' }),
+                stroke: new ol.style.Stroke({ color: 'white', width: 2 })
+              }),
+              zIndex: 1000
+            })
+          )
+        })
+      } else {
+        // For regular geometries, show vertex points (orange)
+        if (geomType === 'LineString') {
+          vertexCoords = geometry.getCoordinates()
+        } else if (geomType === 'Polygon') {
+          // Get coordinates from the exterior ring
+          vertexCoords = geometry.getCoordinates()[0]
+        } else if (geomType === 'Circle') {
+          // For circles, show center point
+          const center = geometry.getCenter()
+          vertexCoords = [center]
+        }
+        
+        // Add vertex point visualization
+        if (vertexCoords.length > 0) {
+          styles.push(
+            new ol.style.Style({
+              geometry: new ol.geom.MultiPoint(vertexCoords),
+              image: new ol.style.Circle({
+                radius: 5,
+                fill: new ol.style.Fill({ color: 'orange' }),
+                stroke: new ol.style.Stroke({ color: 'white', width: 2 })
+              }),
+              zIndex: 1000
+            })
+          )
+        }
+      }
+    }
 
     if (isSelected) {
       styles.push(

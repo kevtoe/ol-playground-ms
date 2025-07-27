@@ -73,6 +73,142 @@ export function useMapInteractions({
         map.addInteraction(interactions.current.draw)
         break
 
+      case "draw-bezier":
+        // Custom Bezier curve drawing implementation
+        let isDrawing = false
+        let currentPoints: number[][] = []
+        let drawingFeature: any = null
+        let tempSource: any = null
+        
+        // Create temporary source for preview
+        tempSource = new ol.source.Vector()
+        const tempLayer = new ol.layer.Vector({
+          source: tempSource,
+          style: new ol.style.Style({
+            stroke: new ol.style.Stroke({
+              color: 'rgba(0, 0, 255, 0.6)',
+              width: 2,
+              lineDash: [5, 5]
+            })
+          }),
+          zIndex: 1000
+        })
+        map.addLayer(tempLayer)
+
+        const bezierClickHandler = (e: any) => {
+          const coordinate = e.coordinate
+          
+          if (!isDrawing) {
+            // Start drawing
+            isDrawing = true
+            currentPoints = [coordinate]
+            drawingFeature = new ol.Feature(new ol.geom.LineString([coordinate, coordinate]))
+            tempSource.addFeature(drawingFeature)
+          } else {
+            // Add point to curve
+            currentPoints.push(coordinate)
+            
+            if (currentPoints.length >= 3) {
+              // Generate smooth curve using cardinal spline
+              const lineString = new ol.geom.LineString(currentPoints)
+              if (typeof lineString.cspline === 'function') {
+                try {
+                  const smoothCurve = lineString.cspline({
+                    tension: 0.5,
+                    pointsPerSeg: 10,
+                    normalize: false
+                  })
+                  drawingFeature.setGeometry(smoothCurve)
+                } catch (error) {
+                  drawingFeature.getGeometry().setCoordinates(currentPoints)
+                }
+              } else {
+                drawingFeature.getGeometry().setCoordinates(currentPoints)
+              }
+            } else {
+              // Update with current points
+              drawingFeature.getGeometry().setCoordinates(currentPoints)
+            }
+          }
+        }
+
+        const bezierDoubleClickHandler = (e: any) => {
+          if (isDrawing && currentPoints.length >= 2) {
+            // Finish drawing - create feature with control points as LineString
+            tempSource.removeFeature(drawingFeature)
+            
+            // Create feature with original control points as LineString geometry
+            const controlPointsGeometry = new ol.geom.LineString(currentPoints)
+            const finalFeature = new ol.Feature(controlPointsGeometry)
+            
+            // Mark this as a spline feature for special styling
+            finalFeature.set('isSpline', true)
+            finalFeature.set('splineOptions', {
+              tension: 0.5,
+              pointsPerSeg: 10,
+              normalize: false
+            })
+            
+            vectorSource.current.addFeature(finalFeature)
+            
+            // Apply default style
+            const defaultStyle = { ...DEFAULT_LINE_STYLE }
+            featureStyles.current.set(ol.util.getUid(finalFeature), JSON.parse(JSON.stringify(defaultStyle)))
+            
+            // Reset state
+            isDrawing = false
+            currentPoints = []
+            drawingFeature = null
+          }
+          e.preventDefault()
+          e.stopPropagation()
+        }
+
+        const bezierPointerMoveHandler = (e: any) => {
+          if (isDrawing && drawingFeature && currentPoints.length > 0) {
+            const coordinate = e.coordinate
+            const previewPoints = [...currentPoints, coordinate]
+            
+            if (previewPoints.length >= 3) {
+              // Generate smooth curve preview using cardinal spline
+              const lineString = new ol.geom.LineString(previewPoints)
+              if (typeof lineString.cspline === 'function') {
+                try {
+                  const smoothCurve = lineString.cspline({
+                    tension: 0.5,
+                    pointsPerSeg: 10,
+                    normalize: false
+                  })
+                  drawingFeature.setGeometry(smoothCurve)
+                } catch (error) {
+                  drawingFeature.getGeometry().setCoordinates(previewPoints)
+                }
+              } else {
+                drawingFeature.getGeometry().setCoordinates(previewPoints)
+              }
+            } else {
+              // For less than 3 points, just show straight lines
+              drawingFeature.getGeometry().setCoordinates(previewPoints)
+            }
+          }
+        }
+
+        // Add event listeners
+        map.on('click', bezierClickHandler)
+        map.on('dblclick', bezierDoubleClickHandler)
+        map.on('pointermove', bezierPointerMoveHandler)
+        
+        // Store cleanup function
+        interactions.current.bezierCleanup = () => {
+          map.un('click', bezierClickHandler)
+          map.un('dblclick', bezierDoubleClickHandler)
+          map.un('pointermove', bezierPointerMoveHandler)
+          if (tempSource) {
+            map.removeLayer(tempLayer)
+          }
+        }
+        break
+
       case "select":
         const selectInteraction = new ol.interaction.Select({
           style: null,
@@ -146,6 +282,17 @@ export function useMapInteractions({
             zIndex: Number.POSITIVE_INFINITY,
           }),
         })
+        
+        // Listen for modify events to trigger style refresh for splines
+        modifyInteraction.on('modifyend', (e: any) => {
+          e.features.forEach((feature: any) => {
+            if (feature.get('isSpline')) {
+              // Force refresh of spline curve by triggering style recalculation
+              vectorSource.current.changed()
+            }
+          })
+        })
+        
         interactions.current.modify = modifyInteraction
 
         const translateHandleInteraction = new ol.interaction.Translate({
@@ -313,8 +460,16 @@ export function useMapInteractions({
       if (selectionListenerKey) {
         ol.Observable.unByKey(selectionListenerKey)
       }
+      
+      // Handle special cleanup for Bezier mode
+      if (interactions.current.bezierCleanup) {
+        interactions.current.bezierCleanup()
+      }
+      
       Object.values(interactions.current).forEach((interaction) => {
-        if (interaction) map.removeInteraction(interaction)
+        if (interaction && typeof interaction.setActive === 'function') {
+          map.removeInteraction(interaction)
+        }
       })
       interactions.current = {}
     }
