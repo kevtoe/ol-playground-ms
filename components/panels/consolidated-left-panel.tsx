@@ -80,6 +80,7 @@ export function ConsolidatedLeftPanel({
   const [activeTab, setActiveTab] = useState("layers")
   const [searchQuery, setSearchQuery] = useState("")
   const [allCollapsed, setAllCollapsed] = useState(false)
+  const [lastSelectedIndex, setLastSelectedIndex] = useState<number | null>(null)
 
   // Helper function for getting instruction text
   const getHelperText = () => {
@@ -122,12 +123,40 @@ export function ConsolidatedLeftPanel({
     })
   }
 
+  // Handle multi-selection with shift+click
+  const handleLayerSelection = (layerId: string, index: number, event?: React.MouseEvent) => {
+    if (event?.shiftKey && lastSelectedIndex !== null) {
+      // Multi-select with shift
+      const allVisibleLayers = filteredLayers.filter(item => 'featureId' in item) as Layer[]
+      const startIndex = Math.min(lastSelectedIndex, index)
+      const endIndex = Math.max(lastSelectedIndex, index)
+      const rangeLayerIds = allVisibleLayers.slice(startIndex, endIndex + 1).map(layer => layer.id)
+      
+      // Combine with existing selection
+      const newSelection = [...new Set([...selectedLayerIds, ...rangeLayerIds])]
+      onLayerSelect(newSelection)
+    } else if (event?.ctrlKey || event?.metaKey) {
+      // Toggle selection with ctrl/cmd
+      const newSelection = selectedLayerIds.includes(layerId)
+        ? selectedLayerIds.filter(id => id !== layerId)
+        : [...selectedLayerIds, layerId]
+      onLayerSelect(newSelection)
+      setLastSelectedIndex(index)
+    } else {
+      // Single selection
+      onLayerSelect([layerId])
+      setLastSelectedIndex(index)
+    }
+  }
+
   const renderLayerItem = (item: Layer | LayerGroupType, index: number) => {
     if ('layerIds' in item) {
-      const allLayers = layers.filter(l => 'featureId' in l) as Layer[]
+      // It's a group - get layers from the full layers array, not just filtered
+      const allLayersArray = layers.filter(l => 'featureId' in l) as Layer[]
       const groupLayers = item.layerIds
-        .map(id => allLayers.find(l => l.id === id))
+        .map(id => allLayersArray.find(l => l.id === id))
         .filter(Boolean) as Layer[]
+      
       
       return (
         <LayerGroup
@@ -148,12 +177,13 @@ export function ConsolidatedLeftPanel({
       )
     } else {
       if (!item.groupId) {
+        const layerIndex = filteredLayers.filter(l => 'featureId' in l).findIndex(l => l.id === item.id)
         return (
           <LayerItem
             key={item.id}
             layer={item}
             isSelected={selectedLayerIds.includes(item.id)}
-            onSelect={onLayerSelect}
+            onSelect={(layerIds, event) => handleLayerSelection(item.id, layerIndex, event)}
             onUpdate={onLayerUpdate}
             onDelete={onLayerDelete}
             onVisibilityToggle={onLayerVisibilityToggle}
@@ -194,9 +224,9 @@ export function ConsolidatedLeftPanel({
           </div>
 
           {/* Layers Tab */}
-          <TabsContent value="layers" className="flex-1 flex flex-col m-0">
+          <TabsContent value="layers" className="flex-1 flex flex-col m-0 h-0">
             {/* Layers Header */}
-            <div className="p-3 border-b border-border">
+            <div className="flex-shrink-0 p-3 border-b border-border">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-sm font-semibold">Layer Management</h2>
                 <div className="flex items-center gap-1">
@@ -258,20 +288,22 @@ export function ConsolidatedLeftPanel({
             </div>
 
             {/* Layer List */}
-            <ScrollArea className="flex-1">
-              <div className="p-2 space-y-1">
-                {filteredLayers.length === 0 ? (
-                  <div className="text-center text-muted-foreground text-xs py-8">
-                    {searchQuery ? "No layers match your search" : "No layers yet"}
-                  </div>
-                ) : (
-                  filteredLayers.map(renderLayerItem)
-                )}
-              </div>
-            </ScrollArea>
+            <div className="flex-1 overflow-hidden">
+              <ScrollArea className="h-full">
+                <div className="p-2 space-y-1">
+                  {filteredLayers.length === 0 ? (
+                    <div className="text-center text-muted-foreground text-xs py-8">
+                      {searchQuery ? "No layers match your search" : "No layers yet"}
+                    </div>
+                  ) : (
+                    filteredLayers.map(renderLayerItem)
+                  )}
+                </div>
+              </ScrollArea>
+            </div>
 
             {/* Layers Footer */}
-            <div className="p-3 border-t border-border">
+            <div className="flex-shrink-0 p-3 border-t border-border">
               <div className="text-xs text-muted-foreground text-center">
                 {layers.filter(item => 'featureId' in item).length} layers
               </div>
@@ -279,98 +311,106 @@ export function ConsolidatedLeftPanel({
           </TabsContent>
 
           {/* Presets Tab */}
-          <TabsContent value="presets" className="flex-1 flex flex-col m-0">
-            <div className="p-3 border-b border-border">
+          <TabsContent value="presets" className="flex-1 flex flex-col m-0 h-0">
+            <div className="flex-shrink-0 p-3 border-b border-border">
               <h2 className="text-sm font-semibold">Style Presets</h2>
               <p className="text-xs text-muted-foreground mt-1">
                 {presetsDisabled ? "Select features to apply presets" : "Click to apply preset to selected features"}
               </p>
             </div>
 
-            <ScrollArea className="flex-1">
-              <div className="p-2 space-y-1">
-                {presets.length === 0 ? (
-                  <div className="text-center text-muted-foreground text-xs py-8">
-                    No presets available.
-                  </div>
-                ) : (
-                  presets.map((preset) => (
-                    <div key={preset.name} className="flex items-center gap-1 group">
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-start text-left h-8 px-2 text-xs"
-                        onClick={() => onPresetApply(preset.style)}
-                        disabled={presetsDisabled}
-                      >
-                        {preset.name}
-                      </Button>
-                      {preset.isDeletable && (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                              onClick={() => onPresetDelete(preset.name)}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Delete Preset</TooltipContent>
-                        </Tooltip>
-                      )}
+            <div className="flex-1 overflow-hidden">
+              <ScrollArea className="h-full">
+                <div className="p-2 space-y-1">
+                  {presets.length === 0 ? (
+                    <div className="text-center text-muted-foreground text-xs py-8">
+                      No presets available.
                     </div>
-                  ))
-                )}
-              </div>
-            </ScrollArea>
+                  ) : (
+                    presets.map((preset) => (
+                      <div key={preset.name} className="flex items-center gap-1 group">
+                        <Button
+                          variant="ghost"
+                          className="w-full justify-start text-left h-8 px-2 text-xs"
+                          onClick={() => onPresetApply(preset.style)}
+                          disabled={presetsDisabled}
+                        >
+                          {preset.name}
+                        </Button>
+                        {preset.isDeletable && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                onClick={() => onPresetDelete(preset.name)}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Delete Preset</TooltipContent>
+                          </Tooltip>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </ScrollArea>
+            </div>
           </TabsContent>
 
           {/* Help Tab */}
-          <TabsContent value="help" className="flex-1 flex flex-col m-0">
-            <div className="p-3 border-b border-border">
+          <TabsContent value="help" className="flex-1 flex flex-col m-0 h-0">
+            <div className="flex-shrink-0 p-3 border-b border-border">
               <h2 className="text-sm font-semibold">Instructions</h2>
               <p className="text-xs text-muted-foreground mt-1">
                 Current mode: <span className="font-medium capitalize">{currentMode.replace('-', ' ')}</span>
               </p>
             </div>
 
-            <div className="flex-1 p-4">
-              <div className="bg-muted/50 rounded-lg p-4 space-y-4">
-                <div className="flex items-start gap-3">
-                  <AlertCircle className="h-5 w-5 text-primary mt-0.5 shrink-0" />
-                  <div>
-                    <h3 className="text-sm font-medium mb-2">Current Tool</h3>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      {getHelperText()}
-                    </p>
+            <div className="flex-1 overflow-hidden">
+              <ScrollArea className="h-full">
+                <div className="p-4">
+                  <div className="bg-muted/50 rounded-lg p-4 space-y-4">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                      <div>
+                        <h3 className="text-sm font-medium mb-2">Current Tool</h3>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          {getHelperText()}
+                        </p>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    <div className="space-y-3">
+                      <h3 className="text-sm font-medium">General Controls</h3>
+                      <div className="space-y-2 text-xs text-muted-foreground">
+                        <div><kbd className="px-1.5 py-0.5 bg-background rounded border text-xs">Esc</kbd> - Return to select mode</div>
+                        <div><kbd className="px-1.5 py-0.5 bg-background rounded border text-xs">Shift + Click</kbd> - Multi-select features</div>
+                        <div><kbd className="px-1.5 py-0.5 bg-background rounded border text-xs">Shift + Drag</kbd> - Box select features</div>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    <div className="space-y-3">
+                      <h3 className="text-sm font-medium">Layer Management</h3>
+                      <div className="space-y-2 text-xs text-muted-foreground">
+                        <div>• Click layers in the panel to select them on the map</div>
+                        <div>• Drag layers to reorder drawing sequence</div>
+                        <div>• Use eye icon to show/hide layers</div>
+                        <div>• Create groups to organize layers</div>
+                        <div>• Drag layers into groups for organization</div>
+                        <div>• Hold Shift and click to select multiple layers</div>
+                        <div>• Hold Ctrl/Cmd and click to toggle layer selection</div>
+                      </div>
+                    </div>
                   </div>
                 </div>
-
-                <Separator />
-
-                <div className="space-y-3">
-                  <h3 className="text-sm font-medium">General Controls</h3>
-                  <div className="space-y-2 text-xs text-muted-foreground">
-                    <div><kbd className="px-1.5 py-0.5 bg-background rounded border text-xs">Esc</kbd> - Return to select mode</div>
-                    <div><kbd className="px-1.5 py-0.5 bg-background rounded border text-xs">Shift + Click</kbd> - Multi-select features</div>
-                    <div><kbd className="px-1.5 py-0.5 bg-background rounded border text-xs">Shift + Drag</kbd> - Box select features</div>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="space-y-3">
-                  <h3 className="text-sm font-medium">Layer Management</h3>
-                  <div className="space-y-2 text-xs text-muted-foreground">
-                    <div>• Click layers in the panel to select them on the map</div>
-                    <div>• Drag layers to reorder drawing sequence</div>
-                    <div>• Use eye icon to show/hide layers</div>
-                    <div>• Create groups to organize layers</div>
-                    <div>• Drag layers into groups for organization</div>
-                  </div>
-                </div>
-              </div>
+              </ScrollArea>
             </div>
           </TabsContent>
         </Tabs>

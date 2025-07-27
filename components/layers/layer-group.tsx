@@ -24,7 +24,7 @@ interface LayerGroupProps {
   group: LayerGroupType
   layers: Layer[]
   selectedLayerIds: string[]
-  onSelect: (layerIds: string[]) => void
+  onSelect: (layerIds: string[], event?: React.MouseEvent) => void
   onUpdate: (id: string, updates: Partial<LayerGroupType>) => void
   onDelete: (id: string) => void
   onLayerUpdate: (id: string, updates: Partial<Layer>) => void

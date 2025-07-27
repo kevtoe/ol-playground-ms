@@ -21,7 +21,7 @@ import type { Layer } from "@/lib/types"
 interface LayerItemProps {
   layer: Layer
   isSelected: boolean
-  onSelect: (layerIds: string[]) => void
+  onSelect: (layerIds: string[], event?: React.MouseEvent) => void
   onUpdate: (id: string, updates: Partial<Layer>) => void
   onDelete: (id: string) => void
   onVisibilityToggle: (id: string) => void
@@ -47,17 +47,7 @@ export function LayerItem({
 
   const handleSelect = (e: React.MouseEvent) => {
     e.stopPropagation()
-    
-    if (e.shiftKey) {
-      // Multi-select (extend selection)
-      onSelect(isSelected ? [] : [layer.id])
-    } else if (e.ctrlKey || e.metaKey) {
-      // Toggle selection
-      onSelect(isSelected ? [] : [layer.id])
-    } else {
-      // Single select
-      onSelect([layer.id])
-    }
+    onSelect([layer.id], e)
   }
 
   const handleNameSubmit = () => {
