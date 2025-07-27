@@ -32,7 +32,7 @@ The layer management system was causing infinite update loops due to bidirection
 ## 🎯 Key Changes Made
 
 ### MapContainer (`components/map/map-container.tsx`)
-```typescript
+\`\`\`typescript
 // Before: Bidirectional sync
 useEffect(() => {
   layerManager.selectLayersFromFeatures(selectedFeatures)
@@ -55,10 +55,10 @@ useEffect(() => {
     }
   }
 }, [selectedFeatures])
-```
+\`\`\`
 
 ### LayerManager (`hooks/use-layer-manager.tsx`)
-```typescript
+\`\`\`typescript
 // Added error handling
 const selectLayersFromFeatures = useCallback((features: any[]) => {
   try {
@@ -71,7 +71,7 @@ const selectLayersFromFeatures = useCallback((features: any[]) => {
     console.error('Error in selectLayersFromFeatures:', error)
   }
 }, [])
-```
+\`\`\`
 
 ## ✅ Results
 - **No more infinite loops**: Selection updates are now controlled and unidirectional

@@ -8,7 +8,7 @@
 **Root Cause**: The selection sync wasn't properly setting the 'selected' property on OpenLayers features.
 
 **Fix**: Updated `selectFeaturesFromLayers` in `hooks/use-layer-manager.tsx`:
-```typescript
+\`\`\`typescript
 // Clear all selections first
 vectorSource.current.getFeatures().forEach((f: any) => {
   f.set('selected', false)
@@ -21,7 +21,7 @@ features.forEach((f: any) => {
 
 // Trigger style refresh
 vectorSource.current.changed()
-```
+\`\`\`
 
 ### 2. **Duplicate Layer Display**
 **Problem**: Layers appeared both inside groups AND outside groups simultaneously.
@@ -29,23 +29,23 @@ vectorSource.current.changed()
 **Root Cause**: The `getOrderedLayers()` function was adding both groups and their individual layers as separate items.
 
 **Fix**: Modified `getOrderedLayers()` in `hooks/use-layer-manager.tsx`:
-```typescript
+\`\`\`typescript
 // Before: Added both groups AND their layers
 result.push(group)
 result.push(...groupLayers) // This caused duplicates
 
 // After: Only add groups (LayerGroup component handles its own layers)
 result.push(...groups)
-```
+\`\`\`
 
 **Fix**: Updated `renderLayerItem()` in `components/layers/layer-management-panel.tsx`:
-```typescript
+\`\`\`typescript
 // Only render ungrouped layers
 if (!item.groupId) {
   return <LayerItem ... />
 }
 return null // Don't render grouped layers here
-```
+\`\`\`
 
 ### 3. **Drag & Drop Reordering Not Working**
 **Problem**: Dragging layers to reorder them had no effect on the actual layer order.
@@ -55,7 +55,7 @@ return null // Don't render grouped layers here
 **Fixes**:
 
 **A. Updated MapContainer** (`components/map/map-container.tsx`):
-```typescript
+\`\`\`typescript
 onLayerReorder={(draggedId, targetId, position) => {
   // Get all layers and reorder them based on drag & drop
   const allLayers = Array.from(layerManager.state.layers.values())
@@ -66,10 +66,10 @@ onLayerReorder={(draggedId, targetId, position) => {
   
   layerManager.operations.reorderLayers(reorderedLayers)
 }}
-```
+\`\`\`
 
 **B. Updated LayerItem** (`components/layers/layer-item.tsx`):
-```typescript
+\`\`\`typescript
 const handleDrop = (e: React.DragEvent) => {
   // Calculate drop position based on mouse position
   const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
@@ -88,7 +88,7 @@ const handleDrop = (e: React.DragEvent) => {
     onReorder(data.layerId, layer.id, position)
   }
 }
-```
+\`\`\`
 
 ### 4. **Group Layer Management Issues**
 **Problem**: Layer visibility and grouping operations weren't working correctly.

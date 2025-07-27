@@ -56,23 +56,10 @@ export function LayerManagementPanel({
   const [searchQuery, setSearchQuery] = useState("")
   const [allCollapsed, setAllCollapsed] = useState(false)
 
-  // Filter layers based on search query - don't filter out layers in groups
+  // Filter layers based on search query
   const filteredLayers = layers.filter(item => {
-    if ('layerIds' in item) {
-      // It's a group - always include groups in filtered results
-      return true
-    } else if ('name' in item) {
-      // It's a layer - check if it matches search or is in a group that matches
-      const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase())
-      
-      // If this layer is in a group, also check if the group name matches
-      if (item.groupId && searchQuery) {
-        const group = layers.find(g => 'layerIds' in g && g.id === item.groupId) as LayerGroupType | undefined
-        const groupMatches = group?.name.toLowerCase().includes(searchQuery.toLowerCase())
-        return matchesSearch || groupMatches || false
-      }
-      
-      return matchesSearch
+    if ('name' in item) {
+      return item.name.toLowerCase().includes(searchQuery.toLowerCase())
     }
     return false
   })

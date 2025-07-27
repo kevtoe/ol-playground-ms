@@ -34,7 +34,7 @@ A modern, interactive mapping application built with OpenLayers, React, and Next
 
 ### Installation
 
-```bash
+\`\`\`bash
 # Clone the repository
 git clone <repository-url>
 cd ol-playground-ms
@@ -44,21 +44,21 @@ pnpm install
 
 # Start development server
 pnpm dev
-```
+\`\`\`
 
 ### Build for Production
 
-```bash
+\`\`\`bash
 # Build the application
 pnpm build
 
 # Start production server
 pnpm start
-```
+\`\`\`
 
 ## 🗂️ Project Structure
 
-```
+\`\`\`
 ├── app/                    # Next.js app directory
 │   ├── page.tsx           # Main application page
 │   ├── layout.tsx         # Root layout with fonts and styles
@@ -72,7 +72,7 @@ pnpm start
 ├── hooks/                 # Custom React hooks
 ├── lib/                   # Utility functions and types
 └── styles/                # Global styles and themes
-```
+\`\`\`
 
 ## 🛠️ Core Components
 
@@ -143,17 +143,17 @@ Custom hook for OpenLayers map initialization and management.
 ## 🎨 Customization
 
 ### Adding New Drawing Tools
-```typescript
+\`\`\`typescript
 // Add to toolbar.tsx
 tools.push({
   value: "new-tool",
   icon: <YourIcon />,
   label: "New Tool"
 })
-```
+\`\`\`
 
 ### Creating Style Presets
-```json
+\`\`\`json
 {
   "name": "Custom Style",
   "style": {
@@ -162,7 +162,7 @@ tools.push({
     "fillColor": "#ff000033"
   }
 }
-```
+\`\`\`
 
 ## 📱 Browser Support
 
