@@ -204,7 +204,7 @@ export function ConsolidatedLeftPanel({
           {/* Main content with tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
             {/* Tab navigation */}
-            <div className="p-3 border-b border-border">
+            <div className="p-3 border-b border-border flex-shrink-0">
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="layers" className="flex items-center gap-2 text-xs">
                   <Layers className="h-3 w-3" />
@@ -221,6 +221,7 @@ export function ConsolidatedLeftPanel({
               </TabsList>
             </div>
 
+            {/* The "Stage" for tab content */}
             <div className="flex-1 relative">
               {/* Layers Tab */}
               <TabsContent value="layers" className="flex flex-col">
@@ -292,9 +293,7 @@ export function ConsolidatedLeftPanel({
                   </div>
                 </div>
               </TabsContent>
-            </div>
 
-            <div className="flex-1 relative">
               {/* Presets Tab */}
               <TabsContent value="presets" className="flex flex-col">
                 <div className="flex-shrink-0 p-3 border-b border-border">
@@ -344,9 +343,7 @@ export function ConsolidatedLeftPanel({
                   </ScrollArea>
                 </div>
               </TabsContent>
-            </div>
 
-            <div className="flex-1 relative">
               {/* Help Tab */}
               <TabsContent value="help" className="flex flex-col">
                 <div className="flex-shrink-0 p-3 border-b border-border">
