@@ -4,16 +4,20 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
-import { MousePointer2, Trash2, Spline, TriangleRight, Circle, Eraser, Move, Square, PenLine } from "lucide-react"
+import { MousePointer2, Trash2, Spline, TriangleRight, Circle, Eraser, Move, Square, PenLine, Undo, Redo } from "lucide-react"
 
 interface ToolbarProps {
   currentMode: string
   setMode: (mode: string) => void
   clearAll: () => void
   disabled: boolean
+  onUndo?: () => void
+  onRedo?: () => void
+  canUndo?: boolean
+  canRedo?: boolean
 }
 
-export function Toolbar({ currentMode, setMode, clearAll, disabled }: ToolbarProps) {
+export function Toolbar({ currentMode, setMode, clearAll, disabled, onUndo, onRedo, canUndo = false, canRedo = false }: ToolbarProps) {
   const tools = [
     { value: "select", icon: <MousePointer2 />, label: "Select / Modify" },
     { value: "draw-line", icon: <PenLine />, label: "Draw Line" },
@@ -50,6 +54,27 @@ export function Toolbar({ currentMode, setMode, clearAll, disabled }: ToolbarPro
               </Tooltip>
             ))}
           </ToggleGroup>
+          <Separator orientation="vertical" className="h-6" />
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" onClick={onUndo} disabled={disabled || !canUndo}>
+                <Undo />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Undo</p>
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" onClick={onRedo} disabled={disabled || !canRedo}>
+                <Redo />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Redo</p>
+            </TooltipContent>
+          </Tooltip>
           <Separator orientation="vertical" className="h-6" />
           <Tooltip>
             <TooltipTrigger asChild>

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { useOpenLayersMap } from "@/hooks/use-openlayers-map"
 import { useMapInteractions } from "@/hooks/use-map-interactions"
 import { useLayerManager } from "@/hooks/use-layer-manager"
+import { useUndoRedo } from "@/hooks/use-undo-redo"
 import { Toolbar } from "@/components/toolbar/toolbar"
 import { StylingPanel } from "@/components/styling/styling-panel"
 import { ConsolidatedLeftPanel } from "@/components/panels/consolidated-left-panel"
@@ -46,11 +47,13 @@ export default function MapContainer({ serverPresets }: MapContainerProps) {
   const [currentZoomInfo, setCurrentZoomInfo] = useState({ zoom: 15, resolution: 0 })
   const [currentCenter, setCurrentCenter] = useState({ lat: -30.777457, lon: 121.505639 })
   const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(false)
+  const [canUndo, setCanUndo] = useState(false)
+  const [canRedo, setCanRedo] = useState(false)
 
   // Layer management - initialize first with dummy vectorSource ref
   const layerManager = useLayerManager(useRef<any>(null), featureStyles, selectedFeatures, setSelectedFeatures)
 
-  const { mapRef, mapInstance, vectorSource, handleSource, baseLayer, scriptsLoaded, Scripts } = useOpenLayersMap(
+  const { mapRef, mapInstance, vectorSource, vectorLayer, handleSource, baseLayer, scriptsLoaded, Scripts } = useOpenLayersMap(
     featureStyles,
     zoomSettings,
     layerManager.layerOrderMapRef,
@@ -62,6 +65,20 @@ export default function MapContainer({ serverPresets }: MapContainerProps) {
       layerManager.vectorSourceRef.current = vectorSource.current
     }
   }, [vectorSource.current, layerManager.vectorSourceRef])
+
+  // Initialize undo/redo functionality
+  const { undo, redo, clearHistory, startUndoBlock, endUndoBlock } = useUndoRedo(
+    mapInstance.current,
+    vectorSource.current,
+    vectorLayer.current,
+    {
+      maxLength: 50,
+      onChange: (canUndo, canRedo) => {
+        setCanUndo(canUndo)
+        setCanRedo(canRedo)
+      },
+    }
+  )
 
   const updateStyleCode = useCallback((feature: any | null) => {
     // This function is a placeholder for now.
@@ -181,6 +198,8 @@ export default function MapContainer({ serverPresets }: MapContainerProps) {
               throw new Error("No features found in GeoJSON file.")
             }
 
+            startUndoBlock()
+
             // Assign default styles to new features
             features.forEach((feature: any) => {
               const uid = ol.util.getUid(feature)
@@ -199,6 +218,8 @@ export default function MapContainer({ serverPresets }: MapContainerProps) {
               layerManager.addLayerFromFeature(feature)
             })
             
+            endUndoBlock()
+
             mapInstance.current.getView().fit(vectorSource.current.getExtent(), {
               padding: [50, 50, 50, 50],
               duration: 1000,
@@ -249,6 +270,14 @@ export default function MapContainer({ serverPresets }: MapContainerProps) {
       if (event.key === "Escape") {
         setCurrentMode("select")
         clearSelection()
+      } else if (event.ctrlKey || event.metaKey) {
+        if (event.key === 'z' && !event.shiftKey) {
+          event.preventDefault()
+          undo()
+        } else if (event.key === 'y' || (event.key === 'z' && event.shiftKey)) {
+          event.preventDefault()
+          redo()
+        }
       }
     }
 
@@ -257,7 +286,7 @@ export default function MapContainer({ serverPresets }: MapContainerProps) {
     return () => {
       document.removeEventListener("keydown", handleKeyDown)
     }
-  }, [clearSelection]) // The dependency ensures this effect uses the latest clearSelection function.
+  }, [clearSelection, undo, redo]) // The dependency ensures this effect uses the latest clearSelection function.
 
   const applyStyleToSelectedFeatures = (newStyle: FeatureStyle, options?: { silent?: boolean }) => {
     if (selectedFeatures.length === 0) {
@@ -270,6 +299,9 @@ export default function MapContainer({ serverPresets }: MapContainerProps) {
       }
       return
     }
+    
+    startUndoBlock()
+    
     const ol = (window as any).ol
     selectedFeatures.forEach((feature) => {
       const uid = ol.util.getUid(feature)
@@ -277,6 +309,9 @@ export default function MapContainer({ serverPresets }: MapContainerProps) {
       featureStyles.current.set(uid, JSON.parse(JSON.stringify(newStyle)))
     })
     vectorSource.current?.changed()
+    
+    endUndoBlock()
+    
     if (!options?.silent) {
       toast({
         title: "Style Applied",
@@ -286,6 +321,8 @@ export default function MapContainer({ serverPresets }: MapContainerProps) {
   }
 
   const clearAll = () => {
+    startUndoBlock()
+    
     vectorSource.current?.clear()
     handleSource.current?.clear()
     featureStyles.current.clear()
@@ -295,6 +332,8 @@ export default function MapContainer({ serverPresets }: MapContainerProps) {
     Array.from(layerManager.state.layers.values()).forEach(layer => {
       layerManager.operations.deleteLayer(layer.id)
     })
+    
+    endUndoBlock()
   }
 
   const handleSavePreset = (name: string, style: FeatureStyle) => {
@@ -457,7 +496,16 @@ export default function MapContainer({ serverPresets }: MapContainerProps) {
           currentMode={currentMode}
         />
 
-        <Toolbar currentMode={currentMode} setMode={setCurrentMode} clearAll={clearAll} disabled={!scriptsLoaded} />
+        <Toolbar 
+          currentMode={currentMode} 
+          setMode={setCurrentMode} 
+          clearAll={clearAll} 
+          disabled={!scriptsLoaded}
+          onUndo={undo}
+          onRedo={redo}
+          canUndo={canUndo}
+          canRedo={canRedo}
+        />
 
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20">
           <div className="bg-card/80 backdrop-blur-sm text-card-foreground px-3 py-1.5 rounded-full text-xs font-medium shadow-lg border flex items-center gap-2">
@@ -465,6 +513,7 @@ export default function MapContainer({ serverPresets }: MapContainerProps) {
             <span className="text-muted-foreground">| {Math.abs(currentCenter.lat).toFixed(2)}°{currentCenter.lat >= 0 ? 'N' : 'S'} {Math.abs(currentCenter.lon).toFixed(2)}°{currentCenter.lon >= 0 ? 'E' : 'W'}</span>
           </div>
         </div>
+
 
         <div className="absolute top-4 right-4 flex flex-col items-end gap-2 z-20">
           <div className="flex gap-2">

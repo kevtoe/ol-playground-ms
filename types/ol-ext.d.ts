@@ -48,3 +48,35 @@ declare module "ol-ext/dist/interaction/Transform.js" {
     constructor(options?: Options)
   }
 }
+
+declare module "ol-ext/interaction/UndoRedo.js" {
+  import { Interaction } from "ol/interaction"
+  import type Map from "ol/Map"
+
+  export interface Options {
+    maxLength?: number
+  }
+
+  export interface UndoRedoEvent {
+    type: string
+    target: any
+    oldValue: any
+    newValue: any
+    feature?: any
+    key?: string
+  }
+
+  export default class UndoRedo extends Interaction {
+    constructor(options?: Options)
+    undo(): void
+    redo(): void
+    clear(): void
+    length(type?: "redo"): number
+    hasRedo(): boolean
+    blockStart(): void
+    blockEnd(): void
+    on(type: "stack:add" | "stack:remove" | "stack:clear", listener: (event: any) => void): void
+    once(type: "stack:add" | "stack:remove" | "stack:clear", listener: (event: any) => void): void
+    un(type: "stack:add" | "stack:remove" | "stack:clear", listener: (event: any) => void): void
+  }
+}

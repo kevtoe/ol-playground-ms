@@ -46,10 +46,20 @@ export function useMapInteractions({
     let selectionListenerKey: any = null
 
     const handleDrawEnd = (e: any) => {
+      // Start undo block for the drawing operation
+      if (vectorSource.current) {
+        vectorSource.current.dispatchEvent("undoblockstart")
+      }
+      
       const geomType = e.feature.getGeometry().getType()
       const defaultStyle =
         geomType === "Polygon" || geomType === "Circle" ? { ...DEFAULT_POLYGON_STYLE } : { ...DEFAULT_LINE_STYLE }
       featureStyles.current.set(ol.util.getUid(e.feature), JSON.parse(JSON.stringify(defaultStyle)))
+      
+      // End undo block after the feature is added
+      if (vectorSource.current) {
+        vectorSource.current.dispatchEvent("undoblockend")
+      }
       
       // Notify about new feature creation
       if (onFeatureCreate) {
