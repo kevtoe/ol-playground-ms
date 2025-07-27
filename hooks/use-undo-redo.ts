@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
-import type UndoRedo from "ol-ext/interaction/UndoRedo.js"
 
 declare global {
   interface Window {
@@ -15,7 +14,7 @@ interface UseUndoRedoOptions {
 }
 
 interface UseUndoRedoReturn {
-  undoRedo: React.MutableRefObject<UndoRedo | null>
+  undoRedo: React.MutableRefObject<any | null>
   canUndo: boolean
   canRedo: boolean
   undo: () => void
@@ -26,7 +25,7 @@ interface UseUndoRedoReturn {
 }
 
 export function useUndoRedo(map: any, vectorSource: any, vectorLayer: any, options: UseUndoRedoOptions = {}): UseUndoRedoReturn {
-  const undoRedo = useRef<UndoRedo | null>(null)
+  const undoRedo = useRef<any | null>(null)
   const [canUndo, setCanUndo] = useState(false)
   const [canRedo, setCanRedo] = useState(false)
   const { maxLength = 50, onChange } = options
@@ -72,11 +71,15 @@ export function useUndoRedo(map: any, vectorSource: any, vectorLayer: any, optio
       }
     }
 
-    const loadUndoRedoAsync = async () => {
+    const loadUndoRedoAsync = () => {
       try {
-        const UndoRedo = (await import("ol-ext/interaction/UndoRedo.js")).default
+        const ol = window.ol
+        if (!ol || !ol.interaction || !ol.interaction.UndoRedo) {
+          console.warn('UndoRedo interaction not available - check ol-ext.js loading')
+          return
+        }
         
-        undoRedo.current = new UndoRedo({
+        undoRedo.current = new ol.interaction.UndoRedo({
           maxLength
         })
 
