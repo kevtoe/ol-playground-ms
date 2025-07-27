@@ -34,8 +34,8 @@ interface ToolbarProps {
 export function Toolbar({ currentMode, setMode, clearAll, disabled }: ToolbarProps) {
   return (
     <TooltipProvider>
-      <Card className="absolute bottom-4 left-4 w-auto z-20">
-        <CardContent className="p-2 flex items-center gap-1 flex-wrap">
+      <Card className="absolute bottom-4 left-1/2 -translate-x-1/2 w-auto z-20">
+        <CardContent className="p-2 flex items-center gap-1 flex-wrap justify-center">
           {tools.map((tool) => (
             <Tooltip key={tool.id}>
               <TooltipTrigger asChild>
