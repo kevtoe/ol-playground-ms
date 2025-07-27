@@ -18,6 +18,8 @@ import { SettingsDialog } from "@/components/settings/settings-dialog"
 import type { FeatureStyle, Preset, ZoomSettings } from "@/lib/types"
 import { DEFAULT_POLYGON_STYLE, DEFAULT_LINE_STYLE } from "@/lib/style-manager"
 import { Badge } from "@/components/ui/badge"
+import { useBreakpoint } from "@/hooks/use-breakpoint"
+import { MobileWarning } from "@/components/mobile-warning"
 
 interface MapContainerProps {
   serverPresets: Preset[]
@@ -49,6 +51,7 @@ export default function MapContainer({ serverPresets }: MapContainerProps) {
   const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(false)
   const [canUndo, setCanUndo] = useState(false)
   const [canRedo, setCanRedo] = useState(false)
+  const { isMobile, width } = useBreakpoint()
 
   // Layer management - initialize first with dummy vectorSource ref
   const layerManager = useLayerManager(useRef<any>(null), featureStyles, selectedFeatures, setSelectedFeatures)
@@ -372,6 +375,19 @@ export default function MapContainer({ serverPresets }: MapContainerProps) {
 
   // Memoize ordered layers to prevent unnecessary re-renders
   const orderedLayers = useMemo(() => layerManager.getOrderedLayers(), [layerManager.state.layers, layerManager.state.groups])
+
+  // Show mobile warning for small screens
+  if (isMobile) {
+    return (
+      <MobileWarning 
+        onShowAnyway={() => {
+          sessionStorage.setItem('forceDesktop', 'true')
+          window.location.reload()
+        }} 
+        screenWidth={width} 
+      />
+    )
+  }
 
   return (
     <TooltipProvider>
