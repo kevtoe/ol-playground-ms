@@ -85,6 +85,8 @@ export function StylingPanel({
       strokeColor: "#000000",
       strokeWidth: 2,
       strokeOpacity: 1,
+      strokeCap: "round",
+      strokeJoin: "round",
       fillColor: "#000000",
       fillOpacity: 0.4,
       fillPattern: { type: "none", color: "#000000", size: 3, spacing: 8, angle: 0 },

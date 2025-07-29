@@ -20,6 +20,7 @@ import {
   HelpCircle,
   Trash2,
   AlertCircle,
+  Upload,
 } from "lucide-react"
 import { LayerItem } from "@/components/layers/layer-item"
 import { LayerGroup } from "@/components/layers/layer-group"
@@ -52,6 +53,7 @@ interface ConsolidatedLeftPanelProps {
 
   // Helper props
   currentMode: string
+  onSVGImport: (svgContent: string, fileName: string) => void
 }
 
 export function ConsolidatedLeftPanel({
@@ -74,6 +76,7 @@ export function ConsolidatedLeftPanel({
   onPresetDelete,
   presetsDisabled,
   currentMode,
+  onSVGImport,
 }: ConsolidatedLeftPanelProps) {
   const [activeTab, setActiveTab] = useState("layers")
   const [searchQuery, setSearchQuery] = useState("")
@@ -255,6 +258,39 @@ export function ConsolidatedLeftPanel({
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>Layer Settings</TooltipContent>
+                      </Tooltip>
+
+                      <input
+                        type="file"
+                        accept=".svg"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0]
+                          if (file) {
+                            const reader = new FileReader()
+                            reader.onload = (event) => {
+                              const content = event.target?.result as string
+                              if (content) {
+                                onSVGImport(content, file.name)
+                              }
+                            }
+                            reader.readAsText(file)
+                          }
+                        }}
+                        className="hidden"
+                        id="svg-import"
+                      />
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => document.getElementById('svg-import')?.click()}
+                          >
+                            <Upload className="h-3 w-3" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Import SVG</TooltipContent>
                       </Tooltip>
                     </div>
                   </div>

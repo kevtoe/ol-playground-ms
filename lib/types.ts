@@ -11,6 +11,8 @@ export type StyleLayer = {
   strokeColor: string
   strokeWidth: number
   strokeOpacity: number
+  strokeCap: 'butt' | 'round' | 'square'
+  strokeJoin: 'bevel' | 'round' | 'miter'
   fillColor: string
   fillOpacity: number
   fillPattern: FillPatternConfig

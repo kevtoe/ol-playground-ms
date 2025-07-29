@@ -14,6 +14,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Toaster } from "@/components/ui/toaster"
 import { useToast } from "@/hooks/use-toast"
 import { Loader, MapIcon, MapPinOffIcon as MapOff, UploadCloud, Settings, EyeOff, Menu } from "lucide-react"
+import { SVGProcessor } from "@/lib/svg-processor"
 import { SettingsDialog } from "@/components/settings/settings-dialog"
 import type { FeatureStyle, Preset, ZoomSettings } from "@/lib/types"
 import { DEFAULT_POLYGON_STYLE, DEFAULT_LINE_STYLE } from "@/lib/style-manager"
@@ -191,7 +192,15 @@ export default function MapContainer({ serverPresets }: MapContainerProps) {
         const reader = new FileReader()
         reader.onload = (event) => {
           try {
-            const text = event.target?.result
+            const text = event.target?.result as string
+            
+            // Handle SVG files
+            if (file.type.includes('svg') || file.name.toLowerCase().endsWith('.svg')) {
+              handleSVGImport(text, file.name)
+              return
+            }
+            
+            // Handle GeoJSON files
             const features = geojsonFormat.readFeatures(text, {
               dataProjection: "EPSG:4326", // Standard for GeoJSON
               featureProjection: "EPSG:3857", // Map's projection
@@ -232,11 +241,11 @@ export default function MapContainer({ serverPresets }: MapContainerProps) {
               description: `${features.length} features loaded from ${file.name}.`,
             })
           } catch (err) {
-            console.error("Error reading GeoJSON file:", err)
+            console.error("Error reading file:", err)
             toast({
               variant: "destructive",
               title: "Import Error",
-              description: `Could not read features from ${file.name}. Make sure it's a valid GeoJSON file.`,
+              description: `Could not read features from ${file.name}. Make sure it's a valid GeoJSON or SVG file.`,
             })
           }
         }
@@ -373,6 +382,64 @@ export default function MapContainer({ serverPresets }: MapContainerProps) {
     })
   }
 
+  const handleSVGImport = useCallback((svgContent: string, fileName: string) => {
+    if (!vectorSource.current || !scriptsLoaded) return
+
+    try {
+      const svgProcessor = new SVGProcessor()
+      const geometries = svgProcessor.parseSVG(svgContent)
+      const features = svgProcessor.createFeatures(geometries)
+
+      if (features.length === 0) {
+        toast({
+          variant: "destructive",
+          title: "Import Error",
+          description: "No valid geometries found in SVG file.",
+        })
+        return
+      }
+
+      startUndoBlock()
+
+      // Assign default styles to new features - EXACTLY like GeoJSON import
+      const ol = (window as any).ol
+      features.forEach((feature: any) => {
+        const uid = ol.util.getUid(feature)
+        const geomType = feature.getGeometry().getType()
+        const defaultStyle =
+          geomType === "Polygon" || geomType === "MultiPolygon" || geomType === "Circle"
+            ? DEFAULT_POLYGON_STYLE
+            : DEFAULT_LINE_STYLE
+        featureStyles.current.set(uid, JSON.parse(JSON.stringify(defaultStyle)))
+      })
+
+      vectorSource.current.addFeatures(features)
+      
+      // Add layers for imported features - same as GeoJSON import
+      features.forEach((feature: any) => {
+        layerManager.addLayerFromFeature(feature)
+      })
+      
+      endUndoBlock()
+
+      mapInstance.current.getView().fit(vectorSource.current.getExtent(), {
+        padding: [50, 50, 50, 50],
+        duration: 1000,
+      })
+      toast({
+        title: "SVG Import Successful",
+        description: `${features.length} features loaded from ${fileName}.`,
+      })
+    } catch (err) {
+      console.error("Error importing SVG:", err)
+      toast({
+        variant: "destructive",
+        title: "Import Error",
+        description: `Could not import features from ${fileName}. Make sure it's a valid SVG file.`,
+      })
+    }
+  }, [vectorSource, scriptsLoaded, layerManager, mapInstance, toast, startUndoBlock, endUndoBlock, featureStyles])
+
   // Memoize ordered layers to prevent unnecessary re-renders
   const orderedLayers = useMemo(() => layerManager.getOrderedLayers(), [layerManager.state.layers, layerManager.state.groups])
 
@@ -407,7 +474,7 @@ export default function MapContainer({ serverPresets }: MapContainerProps) {
           <div className="absolute inset-0 bg-primary/20 border-4 border-dashed border-primary flex items-center justify-center z-30 pointer-events-none">
             <div className="text-center bg-card p-4 rounded-lg shadow-lg">
               <UploadCloud className="h-12 w-12 mx-auto text-primary" />
-              <p className="mt-2 text-lg font-semibold">Drop GeoJSON file here</p>
+              <p className="mt-2 text-lg font-semibold">Drop GeoJSON or SVG file here</p>
             </div>
           </div>
         )}
@@ -510,6 +577,7 @@ export default function MapContainer({ serverPresets }: MapContainerProps) {
           onPresetDelete={handleDeletePreset}
           presetsDisabled={selectedFeatures.length === 0}
           currentMode={currentMode}
+          onSVGImport={handleSVGImport}
         />
 
         <Toolbar 

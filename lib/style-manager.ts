@@ -18,6 +18,8 @@ export const DEFAULT_POLYGON_STYLE: FeatureStyle = {
       strokeColor: "#0000ff",
       strokeWidth: 2,
       strokeOpacity: 1,
+      strokeCap: "round",
+      strokeJoin: "round",
       fillColor: "#0000ff",
       fillOpacity: 0.5,
       fillPattern: {
@@ -51,6 +53,8 @@ export const DEFAULT_LINE_STYLE: FeatureStyle = {
       strokeColor: "#0000ff",
       strokeWidth: 5,
       strokeOpacity: 1,
+      strokeCap: "round",
+      strokeJoin: "round",
       fillColor: "#0000ff",
       fillOpacity: 0.4,
       fillPattern: { type: "none", color: "#000000", size: 1, spacing: 5, angle: 0 },
@@ -239,6 +243,8 @@ export function createStyleFunction(
           stroke: new ol.style.Stroke({
             color: "rgba(255, 165, 0, 0.8)",
             width: maxWidth + 8,
+            lineCap: 'round',
+            lineJoin: 'round',
           }),
           fill:
             geomType === "Polygon" || geomType === "Circle"
@@ -252,7 +258,12 @@ export function createStyleFunction(
     if (isHovered && !isSelected) {
       styles.push(
         new ol.style.Style({
-          stroke: new ol.style.Stroke({ color: "rgba(255, 193, 7, 0.6)", width: maxWidth + 6 }),
+          stroke: new ol.style.Stroke({ 
+            color: "rgba(255, 193, 7, 0.6)", 
+            width: maxWidth + 6,
+            lineCap: 'round',
+            lineJoin: 'round',
+          }),
           zIndex: baseZIndex + 3, // Hover outline should be above the base layer
         }),
       )
@@ -269,6 +280,8 @@ export function createStyleFunction(
         color: hexToRgba(layer.strokeColor, layer.strokeOpacity),
         width: layer.strokeWidth,
         lineDash: layer.dashed ? layer.dashPattern : undefined,
+        lineCap: layer.strokeCap,
+        lineJoin: layer.strokeJoin,
       })
 
       let fill

@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch"
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip"
 import { ChevronUp, ChevronDown, Trash2 } from "lucide-react"
 import { PatternEditor } from "./pattern-editor"
+import { ColorInput } from "./color-input"
 import type { StyleLayer } from "@/lib/types"
 
 interface LayerEditorProps {
@@ -94,27 +95,19 @@ export function LayerEditor({
           </AccordionTrigger>
           <AccordionContent className="space-y-4 pt-2">
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor={`stroke-color-${layer.id}`}>Stroke</Label>
-                <Input
-                  id={`stroke-color-${layer.id}`}
-                  type="color"
-                  value={layer.strokeColor}
-                  onChange={(e) => handleUpdate("strokeColor", e.target.value)}
-                  className="p-1"
-                />
-              </div>
+              <ColorInput
+                id={`stroke-color-${layer.id}`}
+                label="Stroke"
+                value={layer.strokeColor}
+                onChange={(value) => handleUpdate("strokeColor", value)}
+              />
               {isPolygon && (
-                <div className="space-y-2">
-                  <Label htmlFor={`fill-color-${layer.id}`}>Fill</Label>
-                  <Input
-                    id={`fill-color-${layer.id}`}
-                    type="color"
-                    value={layer.fillColor}
-                    onChange={(e) => handleUpdate("fillColor", e.target.value)}
-                    className="p-1"
-                  />
-                </div>
+                <ColorInput
+                  id={`fill-color-${layer.id}`}
+                  label="Fill"
+                  value={layer.fillColor}
+                  onChange={(value) => handleUpdate("fillColor", value)}
+                />
               )}
             </div>
             <div className="space-y-2">
@@ -165,6 +158,36 @@ export function LayerEditor({
                 />
               </div>
             )}
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor={`stroke-cap-${layer.id}`}>Stroke Cap</Label>
+                <select
+                  id={`stroke-cap-${layer.id}`}
+                  value={layer.strokeCap}
+                  onChange={(e) => handleUpdate("strokeCap", e.target.value as 'butt' | 'round' | 'square')}
+                  className="w-full px-3 py-2 border rounded-md bg-background text-sm"
+                >
+                  <option value="butt">Butt</option>
+                  <option value="round">Round</option>
+                  <option value="square">Square</option>
+                </select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor={`stroke-join-${layer.id}`}>Stroke Join</Label>
+                <select
+                  id={`stroke-join-${layer.id}`}
+                  value={layer.strokeJoin}
+                  onChange={(e) => handleUpdate("strokeJoin", e.target.value as 'bevel' | 'round' | 'miter')}
+                  className="w-full px-3 py-2 border rounded-md bg-background text-sm"
+                >
+                  <option value="bevel">Bevel</option>
+                  <option value="round">Round</option>
+                  <option value="miter">Miter</option>
+                </select>
+              </div>
+            </div>
             
             <div className="space-y-2">
               <div className="flex items-center justify-between">

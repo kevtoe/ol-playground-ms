@@ -6,6 +6,7 @@ import { Switch } from "@/components/ui/switch"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Slider } from "@/components/ui/slider"
+import { ColorInput } from "./color-input"
 import type { ArrowConfig } from "@/lib/types"
 
 interface ArrowEditorProps {
@@ -69,16 +70,12 @@ export function ArrowEditor({ arrows, updateArrowStyle }: ArrowEditorProps) {
                 </div>
               )}
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="arrow-color">Color</Label>
-                  <Input
-                    id="arrow-color"
-                    type="color"
-                    value={arrows.color}
-                    onChange={(e) => updateArrowStyle({ color: e.target.value })}
-                    className="p-1"
-                  />
-                </div>
+                <ColorInput
+                  id="arrow-color"
+                  label="Color"
+                  value={arrows.color}
+                  onChange={(value) => updateArrowStyle({ color: value })}
+                />
                 <div className="space-y-2">
                   <Label htmlFor="arrow-style">Style</Label>
                   <Select value={arrows.style} onValueChange={(value) => updateArrowStyle({ style: value as any })}>

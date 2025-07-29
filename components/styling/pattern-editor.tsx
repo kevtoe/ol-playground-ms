@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Slider } from "@/components/ui/slider"
+import { ColorInput } from "./color-input"
 import type { FillPatternConfig } from "@/lib/types"
 
 interface PatternEditorProps {
@@ -36,16 +37,12 @@ export function PatternEditor({ pattern, updatePattern }: PatternEditorProps) {
           </div>
           {pattern.type !== "none" && (
             <div className="space-y-4 pl-2 border-l-2 ml-2">
-              <div className="space-y-2">
-                <Label htmlFor="pattern-color">Color</Label>
-                <Input
-                  id="pattern-color"
-                  type="color"
-                  value={pattern.color}
-                  onChange={(e) => updatePattern({ color: e.target.value })}
-                  className="p-1"
-                />
-              </div>
+              <ColorInput
+                id="pattern-color"
+                label="Color"
+                value={pattern.color}
+                onChange={(value) => updatePattern({ color: value })}
+              />
               <div className="space-y-2">
                 <Label htmlFor="pattern-size">Size</Label>
                 <Slider

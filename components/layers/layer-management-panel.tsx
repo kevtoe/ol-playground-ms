@@ -14,7 +14,8 @@ import {
   FolderPlus,
   Settings,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Upload
 } from "lucide-react"
 import { LayerItem } from "./layer-item"
 import { LayerGroup } from "./layer-group"
@@ -35,6 +36,7 @@ interface LayerManagementPanelProps {
   onLayerVisibilityToggle: (id: string) => void
   onGroupVisibilityToggle: (id: string) => void
   onMoveToGroup: (layerId: string, groupId?: string) => void
+  onSVGImport: (svgContent: string, fileName: string) => void
 }
 
 export function LayerManagementPanel({
@@ -51,10 +53,12 @@ export function LayerManagementPanel({
   onGroupDelete,
   onLayerVisibilityToggle,
   onGroupVisibilityToggle,
-  onMoveToGroup
+  onMoveToGroup,
+  onSVGImport
 }: LayerManagementPanelProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [allCollapsed, setAllCollapsed] = useState(false)
+  const [showSVGImport, setShowSVGImport] = useState(false)
 
   // Filter layers based on search query
   const filteredLayers = layers.filter(item => {
@@ -170,6 +174,20 @@ export function LayerManagementPanel({
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7"
+                    onClick={() => setShowSVGImport(!showSVGImport)}
+                  >
+                    <Upload className="h-3 w-3" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Import SVG</TooltipContent>
+              </Tooltip>
+              
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
                   >
                     <Settings className="h-3 w-3" />
                   </Button>
@@ -190,6 +208,46 @@ export function LayerManagementPanel({
             />
           </div>
         </div>
+
+        {/* SVG Import Panel */}
+        {showSVGImport && (
+          <div className="p-3 border-b border-border">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-medium">Import SVG</h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowSVGImport(false)}
+              >
+                Close
+              </Button>
+            </div>
+            <div className="space-y-3">
+              <input
+                type="file"
+                accept=".svg"
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) {
+                    const reader = new FileReader()
+                    reader.onload = (event) => {
+                      const content = event.target?.result as string
+                      if (content) {
+                        onSVGImport(content, file.name)
+                        setShowSVGImport(false)
+                      }
+                    }
+                    reader.readAsText(file)
+                  }
+                }}
+                className="text-sm file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+              />
+              <p className="text-xs text-muted-foreground">
+                Import SVG files as editable vector layers
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Layer List */}
         <ScrollArea className="flex-1">
